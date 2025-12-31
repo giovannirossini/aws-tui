@@ -482,12 +482,13 @@ func (m Model) View() string {
 			boxContent = m.lambdaModel.View()
 		default:
 			// Home View
-			logo := `  ___   ____    __    ____   _______.   .___________. __    __   __
- /   \  \   \  /  \  /   /  /       |   |           ||  |  |  | |  |
-/  ^  \  \   \/    \/   /  |   (----` + "`---|  |----`|  |  |  | |  | " + `
-/  /_\  \  \            /    \   \           |  |     |  |  |  | |  |
-/  _____  \  \    /\    / .----)   |          |  |     |  ` + "`" + `--'  | |  |
-/__/     \__\  \__/  \__/  |_______/           |__|      \______/  |__|`
+			logo := `
+	  ___   ____    __    ____   _______.   .___________. __    __   __
+     /   \  \   \  /  \  /   /  /       |   |           ||  |  |  | |  |
+    /  ^  \  \   \/    \/   /  |   (----` + "`    ---|  |----`|  |  |  | |  | " + `
+   /  /_\  \  \            /    \   \           |  |     |  |  |  | |  |
+  /  _____  \  \    /\    / .----)   |          |  |     |  ` + "`" + `--'  | |  |
+ /__/     \__\  \__/  \__/  |_______/           |__|      \______/  |__|`
 			logoStyle := lipgloss.NewStyle().Foreground(m.styles.Primary).Bold(true)
 
 			subtitle := lipgloss.NewStyle().
@@ -503,7 +504,7 @@ func (m Model) View() string {
 			featureIcons := map[string]string{
 				"S3 Buckets":                  "󱐖 ",
 				"IAM Users":                   " ",
-				"VPC Network":                 " ",
+				"VPC Network":                 "󰛳 ",
 				"Lambda Functions":            "󰘧 ",
 				"EC2 Instances (Coming Soon)": " ",
 			}

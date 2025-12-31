@@ -14,11 +14,11 @@ const (
 	AppFooterHeight         = 2 // Newlines at the bottom
 	MainContainerMargins    = 1 // Newlines between header and container
 	TableColumnHeaderHeight = 1 // Height of the table column titles
-	AppInternalFooterHeight = 1 // Height of the footer inside the box
+	AppInternalFooterHeight = 0 // Height of the footer inside the box (1 line border + 1 line text)
 
 	// Total height offset for a standard list inside the main container
 	// height - AppHeaderHeight - AppFooterHeight - MainContainerMargins - TableColumnHeaderHeight - AppInternalFooterHeight - (Container Border 2)
-	StandardListHeightOffset = 9
+	StandardListHeightOffset = 10
 )
 
 // GetMainContainerSize returns the width and height for the MainContainer
