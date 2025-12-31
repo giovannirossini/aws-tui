@@ -346,12 +346,7 @@ func (m Model) View() string {
 		return "Initializing..."
 	}
 
-	var s strings.Builder
-
-	// Unified Header
-	// appTitle := m.styles.AppTitle.Render("AWS TUI")
-
-	// Dynamic Current Title
+	// 1. DYNAMIC HEADER TITLE
 	titleText := "AWS TUI"
 	if m.view == viewS3 {
 		titleText = "S3 Buckets"
@@ -417,125 +412,143 @@ func (m Model) View() string {
 		sessionInfo,
 	)
 
-	header := m.styles.Header.Width(m.width - 6).Render(headerContent)
+	// Center the content inside the header box
+	headerWidth := m.width - AppWidthOffset
+	centeredHeaderContent := lipgloss.NewStyle().
+		Width(headerWidth - 2). // -2 for borders
+		Align(lipgloss.Center).
+		Render(headerContent)
 
-	var content string
+	header := m.styles.Header.Width(headerWidth).Render(centeredHeaderContent)
+
+	// 2. FOOTER HINTS
+	footerHints := []string{
+		m.styles.StatusKey.Render("↑↓") + " " + m.styles.StatusMuted.Render("Navigate"),
+		m.styles.StatusKey.Render("Enter") + " " + m.styles.StatusMuted.Render("Select"),
+	}
+
+	if m.view != viewHome {
+		footerHints = append(footerHints, m.styles.StatusKey.Render("esc")+" "+m.styles.StatusMuted.Render("Back"))
+	}
+
+	footerHints = append(footerHints,
+		m.styles.StatusKey.Render("p")+" "+m.styles.StatusMuted.Render("Profile"),
+		m.styles.StatusKey.Render("r")+" "+m.styles.StatusMuted.Render("Refresh"),
+	)
+
+	// Context-specific hints
+	if m.view == viewS3 {
+		if m.s3Model.state == S3StateBuckets {
+			footerHints = append(footerHints, m.styles.StatusKey.Render("n")+" "+m.styles.StatusMuted.Render("New Bucket"))
+		} else if m.s3Model.state == S3StateObjects {
+			footerHints = append(footerHints,
+				m.styles.StatusKey.Render("n")+" "+m.styles.StatusMuted.Render("New Folder"),
+				m.styles.StatusKey.Render("u")+" "+m.styles.StatusMuted.Render("Upload"),
+				m.styles.StatusKey.Render("e")+" "+m.styles.StatusMuted.Render("Edit"),
+			)
+		}
+		if m.s3Model.state == S3StateBuckets || m.s3Model.state == S3StateObjects {
+			footerHints = append(footerHints, m.styles.StatusKey.Render("d")+" "+m.styles.StatusMuted.Render("Delete"))
+		}
+	} else if m.view == viewIAM {
+		if m.iamModel.state == IAMStateUsers {
+			footerHints = append(footerHints,
+				m.styles.StatusKey.Render("n")+" "+m.styles.StatusMuted.Render("New User"),
+				m.styles.StatusKey.Render("d")+" "+m.styles.StatusMuted.Render("Delete"),
+			)
+		}
+	}
+
+	footerHints = append(footerHints, m.styles.StatusKey.Render("q")+" "+m.styles.StatusMuted.Render("Quit"))
+	internalFooter := strings.Join(footerHints, m.styles.StatusMuted.Render(" • "))
+
+	// 3. MAIN BOX CONTENT
+	var boxContent string
 	if m.profileSelector.active {
 		popup := m.styles.Popup.Width(36).Render(
 			m.profileSelector.View(),
 		)
 		headerHeight := lipgloss.Height(header)
-		content = lipgloss.Place(m.width, m.height-headerHeight-3, lipgloss.Center, lipgloss.Center, popup)
-	} else if m.view == viewS3 {
-		content = m.styles.MainContainer.Render(m.s3Model.View())
-	} else if m.view == viewIAM {
-		content = m.styles.MainContainer.Render(m.iamModel.View())
-	} else if m.view == viewVPC {
-		content = m.styles.MainContainer.Render(m.vpcModel.View())
-	} else if m.view == viewLambda {
-		content = m.styles.MainContainer.Render(m.lambdaModel.View())
+		boxContent = lipgloss.Place(m.width, m.height-headerHeight-7, lipgloss.Center, lipgloss.Center, popup)
 	} else {
-		// Home View / Redesigned Initial Page
-		logo := `
-      ___   ____    __    ____   _______.   .___________. __    __   __
-     /   \  \   \  /  \  /   /  /       |   |           ||  |  |  | |  |
-    /  ^  \  \   \/    \/   /  |   (----` + "    `---|  |----`|  |  |  | |  | " + `
-   /  /_\  \  \            /    \   \           |  |     |  |  |  | |  |
-  /  _____  \  \    /\    / .----)   |          |  |     |  ` + "`" + `--'  | |  |
- /__/     \__\  \__/  \__/  |_______/           |__|      \______/  |__|
-`
-		logoStyle := lipgloss.NewStyle().Foreground(m.styles.Primary).Bold(true)
+		switch m.view {
+		case viewS3:
+			boxContent = m.s3Model.View()
+		case viewIAM:
+			boxContent = m.iamModel.View()
+		case viewVPC:
+			boxContent = m.vpcModel.View()
+		case viewLambda:
+			boxContent = m.lambdaModel.View()
+		default:
+			// Home View
+			logo := `  ___   ____    __    ____   _______.   .___________. __    __   __
+ /   \  \   \  /  \  /   /  /       |   |           ||  |  |  | |  |
+/  ^  \  \   \/    \/   /  |   (----` + "`---|  |----`|  |  |  | |  | " + `
+/  /_\  \  \            /    \   \           |  |     |  |  |  | |  |
+/  _____  \  \    /\    / .----)   |          |  |     |  ` + "`" + `--'  | |  |
+/__/     \__\  \__/  \__/  |_______/           |__|      \______/  |__|`
+			logoStyle := lipgloss.NewStyle().Foreground(m.styles.Primary).Bold(true)
 
-		subtitle := lipgloss.NewStyle().
-			Foreground(m.styles.Muted).
-			Italic(true).
-			MarginBottom(1).
-			Render("Manage your AWS infrastructure without leaving your shell.")
+			subtitle := lipgloss.NewStyle().
+				Foreground(m.styles.Muted).
+				Italic(true).
+				MarginBottom(1).
+				Render("Manage your AWS infrastructure without leaving your shell.")
 
-		// Services Menu
-		var menuContent strings.Builder
-		menuContent.WriteString(lipgloss.NewStyle().Foreground(m.styles.Primary).Bold(true).Render(" AVAILABLE SERVICES ") + "\n\n")
+			// Services Menu
+			var menuContent strings.Builder
+			menuContent.WriteString(lipgloss.NewStyle().Foreground(m.styles.Primary).Bold(true).Render(" AVAILABLE SERVICES ") + "\n\n")
 
-		featureIcons := map[string]string{
-			"S3 Buckets":                  "󱐖 ",
-			"IAM Users":                   " ",
-			"VPC Network":                 " ",
-			"Lambda Functions":            "󰘧 ",
-			"EC2 Instances (Coming Soon)": " ",
-		}
-
-		for i, feature := range m.features {
-			icon := featureIcons[feature]
-			if icon == "" {
-				icon = "• "
+			featureIcons := map[string]string{
+				"S3 Buckets":                  "󱐖 ",
+				"IAM Users":                   " ",
+				"VPC Network":                 " ",
+				"Lambda Functions":            "󰘧 ",
+				"EC2 Instances (Coming Soon)": " ",
 			}
 
-			if i == m.selectedFeature && m.focus == focusContent {
-				menuContent.WriteString(m.styles.SelectedMenuItem.Render("➜ "+icon+feature) + "\n")
-			} else {
-				menuContent.WriteString(m.styles.MenuItem.Render("  "+icon+feature) + "\n")
+			for i, feature := range m.features {
+				icon := featureIcons[feature]
+				if icon == "" {
+					icon = "• "
+				}
+
+				if i == m.selectedFeature && m.focus == focusContent {
+					menuContent.WriteString(m.styles.SelectedMenuItem.Render("➜ "+icon+feature) + "\n")
+				} else {
+					menuContent.WriteString(m.styles.MenuItem.Render("  "+icon+feature) + "\n")
+				}
 			}
-		}
 
-		menuBox := m.styles.MenuContainer.Copy().
-			Border(lipgloss.RoundedBorder()).
-			Padding(1, 2).
-			Width(60).
-			Height(8).
-			Render(menuContent.String())
+			menuBox := m.styles.MenuContainer.Copy().
+				Border(lipgloss.RoundedBorder()).
+				Padding(1, 2).
+				Width(60).
+				Render(menuContent.String())
 
-		mainContent := lipgloss.JoinVertical(lipgloss.Center,
-			logoStyle.Render(logo),
-			subtitle,
-			menuBox,
-		)
-
-		content = lipgloss.Place(m.width, m.height-6, lipgloss.Center, lipgloss.Center, mainContent)
-	}
-
-	s.WriteString(header + "\n")
-	s.WriteString(content)
-
-	// Unified Footer / Status Bar
-	footerHints := []string{
-		m.styles.StatusKey.Render("Tab/Arrows") + " " + m.styles.StatusMuted.Render("Navigate"),
-		m.styles.StatusKey.Render("Enter") + " " + m.styles.StatusMuted.Render("Select"),
-		m.styles.StatusKey.Render("P") + " " + m.styles.StatusMuted.Render("Profile"),
-		m.styles.StatusKey.Render("r") + " " + m.styles.StatusMuted.Render("Refresh"),
-		m.styles.StatusKey.Render("q") + " " + m.styles.StatusMuted.Render("Quit"),
-	}
-
-	if m.view == viewS3 || m.view == viewIAM {
-		if m.view == viewS3 || (m.view == viewIAM && m.iamModel.state == IAMStateUsers) {
-			footerHints = append(footerHints,
-				m.styles.StatusKey.Render("n")+" "+m.styles.StatusMuted.Render("New"),
-				m.styles.StatusKey.Render("d")+" "+m.styles.StatusMuted.Render("Del"),
+			homeView := lipgloss.JoinVertical(lipgloss.Center,
+				logoStyle.Render(logo),
+				subtitle,
+				menuBox,
 			)
+
+			headerHeight := lipgloss.Height(header)
+			boxContent = lipgloss.Place(m.width-InnerContentWidthOffset, m.height-headerHeight-7, lipgloss.Center, lipgloss.Center, homeView)
 		}
 	}
 
-	if m.view == viewIAM && m.iamModel.state == IAMStateActions {
-		footerHints = append(footerHints,
-			m.styles.StatusKey.Render("Enter")+" "+m.styles.StatusMuted.Render("Execute"),
-			m.styles.StatusKey.Render("esc")+" "+m.styles.StatusMuted.Render("Back"),
-		)
-	}
+	mainBox := RenderBoxedContainer(m.styles, boxContent, internalFooter, m.width, m.height)
 
-	if m.view == viewS3 {
-		footerHints = append(footerHints,
-			m.styles.StatusKey.Render("u")+" "+m.styles.StatusMuted.Render("Up"),
-			m.styles.StatusKey.Render("e")+" "+m.styles.StatusMuted.Render("Edit"),
-		)
-	}
+	// 4. JOIN EVERYTHING VERTICALLY
+	finalView := lipgloss.JoinVertical(lipgloss.Left,
+		header,
+		mainBox,
+	)
 
-	footer := m.styles.StatusBar.Width(m.width).Render(strings.Join(footerHints, m.styles.StatusMuted.Render(" • ")))
+	return finalView
+}
 
-	// Push footer to bottom
-	currLines := strings.Count(s.String(), "\n")
-	for i := 0; i < m.height-currLines-2; i++ {
-		s.WriteString("\n")
-	}
-	s.WriteString(footer)
-
-	return s.String()
+func (m Model) renderMainContainer(content string, footer string) string {
+	return RenderBoxedContainer(m.styles, content, footer, m.width, m.height)
 }

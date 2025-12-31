@@ -334,7 +334,7 @@ func (m S3Model) Update(msg tea.Msg) (S3Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.list.SetSize(msg.Width-4, msg.Height-8)
+		m.list.SetSize(GetInnerListSize(msg.Width, msg.Height))
 
 	case S3BucketsMsg:
 		items := make([]list.Item, len(msg))
@@ -660,5 +660,5 @@ func (m S3Model) uploadEditedFile(key string) tea.Msg {
 func (m *S3Model) SetSize(width, height int) {
 	m.width = width
 	m.height = height
-	m.list.SetSize(width-4, height-8)
+	m.list.SetSize(GetInnerListSize(width, height))
 }

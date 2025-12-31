@@ -29,7 +29,7 @@ func RenderTableHelpers(m list.Model, styles Styles, columns []Column) ([]lipglo
 		}
 		totalWidthUsed += colWidth
 		
-		columnStyles[i] = lipgloss.NewStyle().Width(colWidth).PaddingRight(2)
+		columnStyles[i] = lipgloss.NewStyle().Width(colWidth).MaxWidth(colWidth).MaxHeight(1).PaddingRight(2)
 		headerStrings[i] = columnStyles[i].Copy().Foreground(styles.Muted).Bold(true).Render(strings.ToUpper(col.Title))
 	}
 	

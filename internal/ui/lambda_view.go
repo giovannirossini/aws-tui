@@ -129,7 +129,7 @@ func (m LambdaModel) Update(msg tea.Msg) (LambdaModel, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.list.SetSize(msg.Width-4, msg.Height-8)
+		m.list.SetSize(GetInnerListSize(msg.Width, msg.Height))
 
 	case LambdaFunctionsMsg:
 		items := make([]list.Item, len(msg))
@@ -181,5 +181,5 @@ func (m LambdaModel) View() string {
 func (m *LambdaModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
-	m.list.SetSize(width-4, height-8)
+	m.list.SetSize(GetInnerListSize(width, height))
 }

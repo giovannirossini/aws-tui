@@ -63,18 +63,18 @@ var vpcColumns = []Column{
 }
 
 var subnetColumns = []Column{
-	{Title: "Name", Width: 0.2},
+	{Title: "Name", Width: 0.3},
 	{Title: "Subnet ID", Width: 0.2},
 	{Title: "VPC ID", Width: 0.3},
-	{Title: "CIDR Block", Width: 0.15},
-	{Title: "AZ", Width: 0.15},
+	{Title: "CIDR Block", Width: 0.1},
+	{Title: "AZ", Width: 0.1},
 }
 
 var natColumns = []Column{
-	{Title: "Name", Width: 0.15},
+	{Title: "Name", Width: 0.25},
 	{Title: "NAT ID", Width: 0.2},
-	{Title: "VPC ID", Width: 0.3},
-	{Title: "Public IP", Width: 0.2},
+	{Title: "VPC ID", Width: 0.25},
+	{Title: "Public IP", Width: 0.15},
 	{Title: "State", Width: 0.15},
 }
 
@@ -315,7 +315,7 @@ func (m VPCModel) Update(msg tea.Msg) (VPCModel, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.list.SetSize(msg.Width-4, msg.Height-8)
+		m.list.SetSize(GetInnerListSize(msg.Width, msg.Height))
 
 	case VPCMenuMsg:
 		m.list.SetItems(msg)
@@ -502,5 +502,5 @@ func (m VPCModel) View() string {
 func (m *VPCModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
-	m.list.SetSize(width-4, height-8)
+	m.list.SetSize(GetInnerListSize(width, height))
 }

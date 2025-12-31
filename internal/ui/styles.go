@@ -84,8 +84,7 @@ func DefaultStyles() Styles {
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(s.Primary).
 		Padding(0, 1).
-		Margin(0, 2).
-		MarginBottom(1)
+		Margin(0, 2)
 
 	s.Profile = lipgloss.NewStyle().
 		Foreground(s.Snow)
@@ -96,7 +95,10 @@ func DefaultStyles() Styles {
 		Padding(0, 1)
 
 	s.MainContainer = lipgloss.NewStyle().
-		Padding(0, 2)
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(s.Primary).
+		Padding(0, 1).
+		Margin(0, 2)
 
 	s.MenuContainer = lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).

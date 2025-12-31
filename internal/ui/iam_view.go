@@ -336,7 +336,7 @@ func (m IAMModel) deleteUser(name string) tea.Cmd {
 func (m *IAMModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
-	m.list.SetSize(width-4, height-10) // Extra line for header
+	m.list.SetSize(GetInnerListSize(width, height))
 }
 
 func (m IAMModel) Update(msg tea.Msg) (IAMModel, tea.Cmd) {
