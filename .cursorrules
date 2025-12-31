@@ -1,0 +1,43 @@
+# AWS Terminal UI (aws-tui) Project Rules
+
+This project is an AWS Terminal UI (TUI) written in Go.
+
+## General Principles
+- You are a Senior Go Engineer.
+- Write idiomatic Go code.
+- Prefer simplicity and readability over cleverness.
+- Maintain a consistent coding style.
+- Use the latest stable versions of dependencies.
+
+## Go Specifics
+- Use `gofmt` or `goimports` for formatting.
+- Handle errors explicitly. Avoid ignoring errors with `_`.
+- Use descriptive variable and function names (CamelCase).
+- Prefer using the AWS SDK for Go v2.
+- For the TUI framework, prefer [Bubble Tea (charmbracelet/bubbletea)](https://github.com/charmbracelet/bubbletea) unless otherwise specified.
+
+## Project Structure
+- Follow standard Go project layout (e.g., `cmd/`, `internal/`, `pkg/`).
+- `cmd/aws-tui/main.go`: Entry point.
+- `internal/`: Private application and library code.
+- `pkg/`: Code that's okay for other projects to consume (use sparingly).
+
+## AWS SDK Usage
+- Use the AWS SDK for Go v2 (`github.com/aws/aws-sdk-go-v2`).
+- Ensure proper configuration handling (profiles, regions, credentials).
+- Use lazy loading for AWS clients to improve startup time.
+
+## UI/UX Guidelines
+- Aim for a clean, responsive terminal interface.
+- Provide clear feedback for long-running operations (e.g., loading spinners).
+- Use consistent keyboard shortcuts.
+- Support common terminal features like mouse support and window resizing.
+
+## Dependencies
+- Manage dependencies using Go modules (`go.mod`).
+- Keep `vendor/` directory if preferred, but Go modules are standard.
+
+## Testing
+- Write unit tests for logic in `internal/` and `pkg/`.
+- Use the standard `testing` package.
+- Mock AWS services for testing.

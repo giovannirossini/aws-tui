@@ -1,0 +1,541 @@
+package ui
+
+import (
+	"context"
+	"os"
+	"strings"
+	"time"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/giovannirossini/aws-tui/internal/aws"
+	"github.com/giovannirossini/aws-tui/internal/cache"
+)
+
+type focus int
+
+const (
+	focusContent focus = iota
+)
+
+type viewState int
+
+const (
+	viewHome viewState = iota
+	viewS3
+	viewIAM
+	viewVPC
+	viewLambda
+)
+
+type Model struct {
+	profiles        []string
+	selectedProfile string
+	profileSelector ProfileSelector
+	styles          Styles
+	focus           focus
+	view            viewState
+	s3Model         S3Model
+	iamModel        IAMModel
+	vpcModel        VPCModel
+	lambdaModel     LambdaModel
+	features        []string
+	selectedFeature int
+	width           int
+	height          int
+	ready           bool
+	identity        *aws.IdentityInfo
+	cache           *cache.Cache
+	cacheKeys       *cache.KeyBuilder
+}
+
+type IdentityMsg *aws.IdentityInfo
+
+func NewModel() (Model, error) {
+	profiles, err := aws.GetProfiles()
+	if err != nil {
+		return Model{}, err
+	}
+
+	selected := ""
+	// 1. Try to use AWS_PROFILE if set
+	if p := os.Getenv("AWS_PROFILE"); p != "" {
+		for _, profile := range profiles {
+			if profile == p {
+				selected = p
+				break
+			}
+		}
+	}
+
+	// 2. If no AWS_PROFILE or not found, try "default"
+	if selected == "" {
+		for _, p := range profiles {
+			if p == "default" {
+				selected = "default"
+				break
+			}
+		}
+	}
+
+	// 3. If "default" not found, use the first in the sorted list
+	if selected == "" && len(profiles) > 0 {
+		selected = profiles[0]
+	}
+
+	// Fallback if no profiles found at all
+	if selected == "" {
+		selected = "default"
+	}
+
+	styles := DefaultStyles()
+	ps := NewProfileSelector(profiles, selected, styles)
+	appCache := cache.New()
+
+	// Start background cache cleanup goroutine
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			appCache.CleanExpired()
+		}
+	}()
+
+	return Model{
+		profiles:        profiles,
+		selectedProfile: selected,
+		profileSelector: ps,
+		styles:          styles,
+		focus:           focusContent,
+		view:            viewHome,
+		features:        []string{"S3 Buckets", "IAM Users", "VPC Network", "Lambda Functions", "EC2 Instances (Coming Soon)"},
+		cache:           appCache,
+		cacheKeys:       cache.NewKeyBuilder(selected),
+	}, nil
+}
+
+func (m Model) Init() tea.Cmd {
+	return m.fetchIdentity()
+}
+
+func (m Model) fetchIdentity() tea.Cmd {
+	return func() tea.Msg {
+		// Check cache first
+		if cached, ok := m.cache.Get(m.cacheKeys.Identity()); ok {
+			if id, ok := cached.(*aws.IdentityInfo); ok {
+				return IdentityMsg(id)
+			}
+		}
+
+		ctx := context.Background()
+		stsClient, err := aws.NewSTSClient(ctx, m.selectedProfile)
+		if err != nil {
+			return nil
+		}
+		id, err := stsClient.GetCallerIdentity(ctx)
+		if err != nil {
+			return nil
+		}
+
+		// Try to fetch account alias
+		iamClient, err := aws.NewIAMClient(ctx, m.selectedProfile)
+		if err == nil {
+			aliases, err := iamClient.ListAccountAliases(ctx)
+			if err == nil && len(aliases) > 0 {
+				id.Alias = aliases[0]
+			}
+		}
+
+		// Cache the identity
+		m.cache.Set(m.cacheKeys.Identity(), id, cache.TTLIdentity)
+
+		return IdentityMsg(id)
+	}
+}
+
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	var cmds []tea.Cmd
+
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		m.profileSelector.SetSize(m.width, m.height)
+		if m.view == viewS3 {
+			m.s3Model.SetSize(m.width, m.height)
+			m.s3Model, cmd = m.s3Model.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewIAM {
+			m.iamModel.SetSize(m.width, m.height)
+			m.iamModel, cmd = m.iamModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewVPC {
+			m.vpcModel.SetSize(m.width, m.height)
+			m.vpcModel, cmd = m.vpcModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewLambda {
+			m.lambdaModel.SetSize(m.width, m.height)
+			m.lambdaModel, cmd = m.lambdaModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		m.ready = true
+
+	case tea.KeyMsg:
+		if m.profileSelector.active {
+			m.profileSelector, cmd = m.profileSelector.Update(msg)
+			return m, cmd
+		}
+
+		if m.view == viewS3 {
+			// ... (existing S3 handling)
+			if msg.String() == "esc" && m.s3Model.state == S3StateBuckets {
+				m.view = viewHome
+				return m, nil
+			}
+
+			// Special handling for edit which requires suspension
+			if msg.String() == "e" && m.s3Model.state == S3StateObjects {
+				if item, ok := m.s3Model.list.SelectedItem().(s3Item); ok && !item.isFolder && !item.isBucket {
+					return m, tea.ExecProcess(m.s3Model.getEditCommand(item.key), func(err error) tea.Msg {
+						if err != nil {
+							return S3ErrorMsg(err)
+						}
+						return m.s3Model.uploadEditedFile(item.key)
+					})
+				}
+			}
+
+			m.s3Model, cmd = m.s3Model.Update(msg)
+			return m, cmd
+		}
+
+		if m.view == viewIAM {
+			if msg.String() == "esc" && m.iamModel.state == IAMStateUsers {
+				m.view = viewHome
+				return m, nil
+			}
+			m.iamModel, cmd = m.iamModel.Update(msg)
+			return m, cmd
+		}
+
+		if m.view == viewVPC {
+			if msg.String() == "esc" && m.vpcModel.state == VPCStateMenu {
+				m.view = viewHome
+				return m, nil
+			}
+			m.vpcModel, cmd = m.vpcModel.Update(msg)
+			return m, cmd
+		}
+
+		if m.view == viewLambda {
+			if msg.String() == "esc" {
+				m.view = viewHome
+				return m, nil
+			}
+			m.lambdaModel, cmd = m.lambdaModel.Update(msg)
+			return m, cmd
+		}
+
+		switch msg.String() {
+		case "q", "ctrl+c":
+			return m, tea.Quit
+		case "r": // Manual refresh
+			if m.view == viewHome {
+				m.cache.Delete(m.cacheKeys.Identity())
+				return m, m.fetchIdentity()
+			}
+		case "p", "P":
+			m.profileSelector.active = true
+			m.profileSelector.list.FilterInput.Focus()
+			return m, nil
+		case "tab":
+			// No-op, header is non-interactive
+		case "up":
+			if m.selectedFeature > 0 {
+				m.selectedFeature--
+			}
+		case "down":
+			if m.selectedFeature < len(m.features)-1 {
+				m.selectedFeature++
+			}
+		case "enter":
+			if m.features[m.selectedFeature] == "S3 Buckets" {
+				m.view = viewS3
+				m.s3Model = NewS3Model(m.selectedProfile, m.styles, m.cache)
+				m.s3Model.SetSize(m.width, m.height)
+				return m, m.s3Model.Init()
+			}
+			if m.features[m.selectedFeature] == "IAM Users" {
+				m.view = viewIAM
+				m.iamModel = NewIAMModel(m.selectedProfile, m.styles, m.cache)
+				m.iamModel.SetSize(m.width, m.height)
+				return m, m.iamModel.Init()
+			}
+			if m.features[m.selectedFeature] == "VPC Network" {
+				m.view = viewVPC
+				m.vpcModel = NewVPCModel(m.selectedProfile, m.styles, m.cache)
+				m.vpcModel.SetSize(m.width, m.height)
+				return m, m.vpcModel.Init()
+			}
+			if m.features[m.selectedFeature] == "Lambda Functions" {
+				m.view = viewLambda
+				m.lambdaModel = NewLambdaModel(m.selectedProfile, m.styles, m.cache)
+				m.lambdaModel.SetSize(m.width, m.height)
+				return m, m.lambdaModel.Init()
+			}
+		}
+
+	case ProfileSelectedMsg:
+		m.selectedProfile = string(msg)
+		m.profileSelector.active = false
+		m.identity = nil                                     // Clear current identity
+		m.cacheKeys = cache.NewKeyBuilder(m.selectedProfile) // Update cache keys for new profile
+		// Reset views if profile changed
+		if m.view == viewS3 {
+			m.s3Model = NewS3Model(m.selectedProfile, m.styles, m.cache)
+			m.s3Model.SetSize(m.width, m.height)
+			return m, tea.Batch(m.s3Model.Init(), m.fetchIdentity())
+		}
+		if m.view == viewIAM {
+			m.iamModel = NewIAMModel(m.selectedProfile, m.styles, m.cache)
+			m.iamModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.iamModel.Init(), m.fetchIdentity())
+		}
+		if m.view == viewVPC {
+			m.vpcModel = NewVPCModel(m.selectedProfile, m.styles, m.cache)
+			m.vpcModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.vpcModel.Init(), m.fetchIdentity())
+		}
+		if m.view == viewLambda {
+			m.lambdaModel = NewLambdaModel(m.selectedProfile, m.styles, m.cache)
+			m.lambdaModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.lambdaModel.Init(), m.fetchIdentity())
+		}
+		return m, m.fetchIdentity()
+
+	case S3BucketsMsg, S3ObjectsMsg, S3ErrorMsg, S3SuccessMsg:
+		m.s3Model, cmd = m.s3Model.Update(msg)
+		return m, cmd
+
+	case IAMUsersMsg, IAMErrorMsg, IAMSuccessMsg:
+		m.iamModel, cmd = m.iamModel.Update(msg)
+		return m, cmd
+
+	case VPCsMsg, SubnetsMsg, NatGatewaysMsg, RouteTablesMsg, VpnGatewaysMsg, VPCErrorMsg, VPCMenuMsg:
+		m.vpcModel, cmd = m.vpcModel.Update(msg)
+		return m, cmd
+
+	case LambdaFunctionsMsg, LambdaErrorMsg:
+		m.lambdaModel, cmd = m.lambdaModel.Update(msg)
+		return m, cmd
+
+	case IdentityMsg:
+		m.identity = msg
+		return m, nil
+	}
+
+	return m, tea.Batch(cmds...)
+}
+
+func (m Model) View() string {
+	if !m.ready {
+		return "Initializing..."
+	}
+
+	var s strings.Builder
+
+	// Unified Header
+	// appTitle := m.styles.AppTitle.Render("AWS TUI")
+
+	// Dynamic Current Title
+	titleText := "AWS TUI"
+	if m.view == viewS3 {
+		titleText = "S3 Buckets"
+	} else if m.view == viewIAM {
+		if m.iamModel.state == IAMStateActions {
+			titleText = "IAM Actions"
+		} else {
+			titleText = "IAM Users"
+		}
+	} else if m.view == viewVPC {
+		switch m.vpcModel.state {
+		case VPCStateMenu:
+			titleText = "VPC Network"
+		case VPCStateVPCs:
+			titleText = "VPCs"
+		case VPCStateSubnets:
+			titleText = "Subnets"
+		case VPCStateNatGateways:
+			titleText = "NAT Gateways"
+		case VPCStateRouteTables:
+			titleText = "Route Tables"
+		case VPCStateVpnGateways:
+			titleText = "VPN Gateways"
+		}
+	} else if m.view == viewLambda {
+		titleText = "Lambda Functions"
+	}
+	currentViewTitle := m.styles.ViewTitle.Render(titleText)
+
+	// Profile Section
+	profileLabel := m.styles.StatusKey.Render("profile: ")
+	profileValue := m.selectedProfile
+	profileText := profileLabel + m.styles.Profile.Render(profileValue)
+
+	// Session Info (Account & Region)
+	var sessionInfo string
+	if m.identity != nil {
+		accInfo := lipgloss.NewStyle().Foreground(m.styles.Snow).Render(m.identity.Account)
+		if m.identity.Alias != "" {
+			accInfo += " " + m.styles.StatusMuted.Render("("+m.identity.Alias+")")
+		}
+
+		region := m.identity.Region
+		if region == "" {
+			region = "unknown"
+		}
+		regionInfo := lipgloss.NewStyle().Foreground(m.styles.Snow).Render(region)
+
+		sessionInfo = lipgloss.JoinHorizontal(lipgloss.Center,
+			m.styles.StatusMuted.Render(" | "),
+			m.styles.StatusKey.Render("account: "), accInfo,
+			m.styles.StatusMuted.Render(" | "),
+			m.styles.StatusKey.Render("region: "), regionInfo,
+		)
+	} else {
+		sessionInfo = m.styles.StatusMuted.Render(" | ") + m.styles.StatusMuted.Render("loading session...")
+	}
+
+	headerContent := lipgloss.JoinHorizontal(lipgloss.Center,
+		currentViewTitle,
+		m.styles.StatusMuted.Render(" | "),
+		profileText,
+		sessionInfo,
+	)
+
+	header := m.styles.Header.Width(m.width - 6).Render(headerContent)
+
+	var content string
+	if m.profileSelector.active {
+		popup := m.styles.Popup.Width(36).Render(
+			m.profileSelector.View(),
+		)
+		headerHeight := lipgloss.Height(header)
+		content = lipgloss.Place(m.width, m.height-headerHeight-3, lipgloss.Center, lipgloss.Center, popup)
+	} else if m.view == viewS3 {
+		content = m.styles.MainContainer.Render(m.s3Model.View())
+	} else if m.view == viewIAM {
+		content = m.styles.MainContainer.Render(m.iamModel.View())
+	} else if m.view == viewVPC {
+		content = m.styles.MainContainer.Render(m.vpcModel.View())
+	} else if m.view == viewLambda {
+		content = m.styles.MainContainer.Render(m.lambdaModel.View())
+	} else {
+		// Home View / Redesigned Initial Page
+		logo := `
+      ___   ____    __    ____   _______.   .___________. __    __   __
+     /   \  \   \  /  \  /   /  /       |   |           ||  |  |  | |  |
+    /  ^  \  \   \/    \/   /  |   (----` + "    `---|  |----`|  |  |  | |  | " + `
+   /  /_\  \  \            /    \   \           |  |     |  |  |  | |  |
+  /  _____  \  \    /\    / .----)   |          |  |     |  ` + "`" + `--'  | |  |
+ /__/     \__\  \__/  \__/  |_______/           |__|      \______/  |__|
+`
+		logoStyle := lipgloss.NewStyle().Foreground(m.styles.Primary).Bold(true)
+
+		subtitle := lipgloss.NewStyle().
+			Foreground(m.styles.Muted).
+			Italic(true).
+			MarginBottom(1).
+			Render("Manage your AWS infrastructure without leaving your shell.")
+
+		// Services Menu
+		var menuContent strings.Builder
+		menuContent.WriteString(lipgloss.NewStyle().Foreground(m.styles.Primary).Bold(true).Render(" AVAILABLE SERVICES ") + "\n\n")
+
+		featureIcons := map[string]string{
+			"S3 Buckets":                  "󱐖 ",
+			"IAM Users":                   " ",
+			"VPC Network":                 " ",
+			"Lambda Functions":            "󰘧 ",
+			"EC2 Instances (Coming Soon)": " ",
+		}
+
+		for i, feature := range m.features {
+			icon := featureIcons[feature]
+			if icon == "" {
+				icon = "• "
+			}
+
+			if i == m.selectedFeature && m.focus == focusContent {
+				menuContent.WriteString(m.styles.SelectedMenuItem.Render("➜ "+icon+feature) + "\n")
+			} else {
+				menuContent.WriteString(m.styles.MenuItem.Render("  "+icon+feature) + "\n")
+			}
+		}
+
+		menuBox := m.styles.MenuContainer.Copy().
+			Border(lipgloss.RoundedBorder()).
+			Padding(1, 2).
+			Width(60).
+			Height(8).
+			Render(menuContent.String())
+
+		mainContent := lipgloss.JoinVertical(lipgloss.Center,
+			logoStyle.Render(logo),
+			subtitle,
+			menuBox,
+		)
+
+		content = lipgloss.Place(m.width, m.height-6, lipgloss.Center, lipgloss.Center, mainContent)
+	}
+
+	s.WriteString(header + "\n")
+	s.WriteString(content)
+
+	// Unified Footer / Status Bar
+	footerHints := []string{
+		m.styles.StatusKey.Render("Tab/Arrows") + " " + m.styles.StatusMuted.Render("Navigate"),
+		m.styles.StatusKey.Render("Enter") + " " + m.styles.StatusMuted.Render("Select"),
+		m.styles.StatusKey.Render("P") + " " + m.styles.StatusMuted.Render("Profile"),
+		m.styles.StatusKey.Render("r") + " " + m.styles.StatusMuted.Render("Refresh"),
+		m.styles.StatusKey.Render("q") + " " + m.styles.StatusMuted.Render("Quit"),
+	}
+
+	if m.view == viewS3 || m.view == viewIAM {
+		if m.view == viewS3 || (m.view == viewIAM && m.iamModel.state == IAMStateUsers) {
+			footerHints = append(footerHints,
+				m.styles.StatusKey.Render("n")+" "+m.styles.StatusMuted.Render("New"),
+				m.styles.StatusKey.Render("d")+" "+m.styles.StatusMuted.Render("Del"),
+			)
+		}
+	}
+
+	if m.view == viewIAM && m.iamModel.state == IAMStateActions {
+		footerHints = append(footerHints,
+			m.styles.StatusKey.Render("Enter")+" "+m.styles.StatusMuted.Render("Execute"),
+			m.styles.StatusKey.Render("esc")+" "+m.styles.StatusMuted.Render("Back"),
+		)
+	}
+
+	if m.view == viewS3 {
+		footerHints = append(footerHints,
+			m.styles.StatusKey.Render("u")+" "+m.styles.StatusMuted.Render("Up"),
+			m.styles.StatusKey.Render("e")+" "+m.styles.StatusMuted.Render("Edit"),
+		)
+	}
+
+	footer := m.styles.StatusBar.Width(m.width).Render(strings.Join(footerHints, m.styles.StatusMuted.Render(" • ")))
+
+	// Push footer to bottom
+	currLines := strings.Count(s.String(), "\n")
+	for i := 0; i < m.height-currLines-2; i++ {
+		s.WriteString("\n")
+	}
+	s.WriteString(footer)
+
+	return s.String()
+}
