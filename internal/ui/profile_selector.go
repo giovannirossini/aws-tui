@@ -39,7 +39,7 @@ func NewProfileSelector(profiles []string, initial string, styles Styles) Profil
 		h = 15
 	}
 
-	l := list.New(items, d, 36, h)
+	l := list.New(items, d, 34, h)
 	l.Title = "Select AWS Profile"
 	l.SetShowStatusBar(false)
 	l.SetShowHelp(false)
@@ -48,7 +48,12 @@ func NewProfileSelector(profiles []string, initial string, styles Styles) Profil
 	if len(profiles) <= 10 {
 		l.SetShowPagination(false)
 	}
-	l.Styles.Title = styles.AppTitle.Copy().Background(styles.DarkGray).Foreground(styles.Primary).Margin(0, 0, 1, 0)
+	l.Styles.Title = styles.AppTitle.Copy().
+		Background(styles.DarkGray).
+		Foreground(styles.Primary).
+		Margin(0, 0, 1, 0).
+		Width(34).
+		Align(lipgloss.Center)
 	l.Styles.FilterPrompt = lipgloss.NewStyle().Foreground(styles.Primary).Bold(true)
 	l.Styles.FilterCursor = lipgloss.NewStyle().Foreground(styles.Primary)
 	l.KeyMap.Quit.SetEnabled(false)
@@ -105,5 +110,5 @@ func (m *ProfileSelector) SetSize(width, height int) {
 	if h < 5 {
 		h = 5
 	}
-	m.list.SetSize(36, h)
+	m.list.SetSize(34, h)
 }

@@ -16,6 +16,10 @@ const (
 	TTLShortS3Objects = 30 * time.Second // S3 ListObjects (small/active buckets)
 	TTLVPCResources   = 10 * time.Minute // VPC resources (VPC, Subnets, etc)
 	TTLLambdaFunctions = 5 * time.Minute  // Lambda ListFunctions
+	TTLEC2Resources    = 10 * time.Minute // EC2 resources (Instances, SG, etc)
+	TTLRDSResources    = 10 * time.Minute // RDS resources (Instances, Clusters, etc)
+	TTLCWResources     = 5 * time.Minute  // CloudWatch resources
+	TTLCFResources     = 10 * time.Minute // CloudFront resources
 )
 
 // KeyBuilder provides methods to build cache keys
@@ -81,4 +85,24 @@ func (kb *KeyBuilder) VPCResources(resourceType string) string {
 // LambdaFunctions returns the cache key for Lambda functions list
 func (kb *KeyBuilder) LambdaFunctions() string {
 	return fmt.Sprintf("%s:lambda:functions", kb.profile)
+}
+
+// EC2Resources returns the cache key for EC2 resources
+func (kb *KeyBuilder) EC2Resources(resourceType string) string {
+	return fmt.Sprintf("%s:ec2:%s", kb.profile, resourceType)
+}
+
+// RDSResources returns the cache key for RDS resources
+func (kb *KeyBuilder) RDSResources(resourceType string) string {
+	return fmt.Sprintf("%s:rds:%s", kb.profile, resourceType)
+}
+
+// CWResources returns the cache key for CloudWatch resources
+func (kb *KeyBuilder) CWResources(resourceType string) string {
+	return fmt.Sprintf("%s:cw:%s", kb.profile, resourceType)
+}
+
+// CFResources returns the cache key for CloudFront resources
+func (kb *KeyBuilder) CFResources(resourceType string) string {
+	return fmt.Sprintf("%s:cf:%s", kb.profile, resourceType)
 }

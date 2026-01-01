@@ -26,6 +26,10 @@ const (
 	viewIAM
 	viewVPC
 	viewLambda
+	viewEC2
+	viewRDS
+	viewCW
+	viewCF
 )
 
 type Model struct {
@@ -39,6 +43,10 @@ type Model struct {
 	iamModel        IAMModel
 	vpcModel        VPCModel
 	lambdaModel     LambdaModel
+	ec2Model        EC2Model
+	rdsModel        RDSModel
+	cwModel         CWModel
+	cfModel         CFModel
 	features        []string
 	selectedFeature int
 	width           int
@@ -113,22 +121,21 @@ func NewModel() (Model, error) {
 			"IAM Users",
 			"VPC Network",
 			"Lambda Functions",
-			"EC2 Instances (Coming Soon)",
-			"RDS Databases (Coming Soon)",
-			"CloudWatch Logs (Coming Soon)",
-			"SQS Queues (Coming Soon)",
-			"SNS Topics (Coming Soon)",
-			"Route 53 Zones (Coming Soon)",
-			"Secrets Manager (Coming Soon)",
-			"ELB Load Balancers (Coming Soon)",
-			"EBS Volumes (Coming Soon)",
-			"ACM Certificates (Coming Soon)",
-			"CloudFront Distros (Coming Soon)",
-			"ElastiCache (Coming Soon)",
-			"KMS Keys (Coming Soon)",
+			"EC2 Resources",
+			"RDS Databases",
+			"CloudWatch Logs",
+			"CloudFront Distros",
+			"ElastiCache (Todo)",
+			"MSK (Todo)",
+			"SQS Queues (Todo)",
+			"Secrets Manager (Todo)",
+			"Route 53 Zones (Todo)",
+			"ACM Certificates (Todo)",
+			"SNS Topics (Todo)",
+			"KMS Keys (Todo)",
 		},
-		cache:           appCache,
-		cacheKeys:       cache.NewKeyBuilder(selected),
+		cache:     appCache,
+		cacheKeys: cache.NewKeyBuilder(selected),
 	}, nil
 }
 
@@ -200,6 +207,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.lambdaModel, cmd = m.lambdaModel.Update(msg)
 			cmds = append(cmds, cmd)
 		}
+		if m.view == viewEC2 {
+			m.ec2Model.SetSize(m.width, m.height)
+			m.ec2Model, cmd = m.ec2Model.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewRDS {
+			m.rdsModel.SetSize(m.width, m.height)
+			m.rdsModel, cmd = m.rdsModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewCW {
+			m.cwModel.SetSize(m.width, m.height)
+			m.cwModel, cmd = m.cwModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewCF {
+			m.cfModel.SetSize(m.width, m.height)
+			m.cfModel, cmd = m.cfModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
 		m.ready = true
 
 	case tea.KeyMsg:
@@ -258,6 +285,42 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		}
 
+		if m.view == viewEC2 {
+			if msg.String() == "esc" && m.ec2Model.state == EC2StateMenu {
+				m.view = viewHome
+				return m, nil
+			}
+			m.ec2Model, cmd = m.ec2Model.Update(msg)
+			return m, cmd
+		}
+
+		if m.view == viewRDS {
+			if msg.String() == "esc" && m.rdsModel.state == RDSStateMenu {
+				m.view = viewHome
+				return m, nil
+			}
+			m.rdsModel, cmd = m.rdsModel.Update(msg)
+			return m, cmd
+		}
+
+		if m.view == viewCW {
+			if msg.String() == "esc" && m.cwModel.state == CWStateMenu {
+				m.view = viewHome
+				return m, nil
+			}
+			m.cwModel, cmd = m.cwModel.Update(msg)
+			return m, cmd
+		}
+
+		if m.view == viewCF {
+			if msg.String() == "esc" && m.cfModel.state == CFStateMenu {
+				m.view = viewHome
+				return m, nil
+			}
+			m.cfModel, cmd = m.cfModel.Update(msg)
+			return m, cmd
+		}
+
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
@@ -305,6 +368,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.lambdaModel.SetSize(m.width, m.height)
 				return m, m.lambdaModel.Init()
 			}
+			if m.features[m.selectedFeature] == "EC2 Resources" {
+				m.view = viewEC2
+				m.ec2Model = NewEC2Model(m.selectedProfile, m.styles, m.cache)
+				m.ec2Model.SetSize(m.width, m.height)
+				return m, m.ec2Model.Init()
+			}
+			if m.features[m.selectedFeature] == "RDS Databases" {
+				m.view = viewRDS
+				m.rdsModel = NewRDSModel(m.selectedProfile, m.styles, m.cache)
+				m.rdsModel.SetSize(m.width, m.height)
+				return m, m.rdsModel.Init()
+			}
+			if m.features[m.selectedFeature] == "CloudWatch Logs" {
+				m.view = viewCW
+				m.cwModel = NewCWModel(m.selectedProfile, m.styles, m.cache)
+				m.cwModel.SetSize(m.width, m.height)
+				return m, m.cwModel.Init()
+			}
+			if m.features[m.selectedFeature] == "CloudFront Distros" {
+				m.view = viewCF
+				m.cfModel = NewCFModel(m.selectedProfile, m.styles, m.cache)
+				m.cfModel.SetSize(m.width, m.height)
+				return m, m.cfModel.Init()
+			}
 		}
 
 	case ProfileSelectedMsg:
@@ -333,6 +420,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.lambdaModel.SetSize(m.width, m.height)
 			return m, tea.Batch(m.lambdaModel.Init(), m.fetchIdentity())
 		}
+		if m.view == viewEC2 {
+			m.ec2Model = NewEC2Model(m.selectedProfile, m.styles, m.cache)
+			m.ec2Model.SetSize(m.width, m.height)
+			return m, tea.Batch(m.ec2Model.Init(), m.fetchIdentity())
+		}
+		if m.view == viewRDS {
+			m.rdsModel = NewRDSModel(m.selectedProfile, m.styles, m.cache)
+			m.rdsModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.rdsModel.Init(), m.fetchIdentity())
+		}
+		if m.view == viewCW {
+			m.cwModel = NewCWModel(m.selectedProfile, m.styles, m.cache)
+			m.cwModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.cwModel.Init(), m.fetchIdentity())
+		}
+		if m.view == viewCF {
+			m.cfModel = NewCFModel(m.selectedProfile, m.styles, m.cache)
+			m.cfModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.cfModel.Init(), m.fetchIdentity())
+		}
 		return m, m.fetchIdentity()
 
 	case S3BucketsMsg, S3ObjectsMsg, S3ErrorMsg, S3SuccessMsg:
@@ -349,6 +456,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case LambdaFunctionsMsg, LambdaErrorMsg:
 		m.lambdaModel, cmd = m.lambdaModel.Update(msg)
+		return m, cmd
+
+	case InstancesMsg, SecurityGroupsMsg, VolumesMsg, TargetGroupsMsg, EC2ErrorMsg, EC2MenuMsg:
+		m.ec2Model, cmd = m.ec2Model.Update(msg)
+		return m, cmd
+
+	case RDSInstancesMsg, RDSClustersMsg, RDSSnapshotsMsg, RDSSubnetGroupsMsg, RDSErrorMsg, RDSMenuMsg:
+		m.rdsModel, cmd = m.rdsModel.Update(msg)
+		return m, cmd
+
+	case CWLogGroupsMsg, CWLogStreamsMsg, CWLogEventsMsg, CWErrorMsg, CWMenuMsg:
+		m.cwModel, cmd = m.cwModel.Update(msg)
+		return m, cmd
+
+	case CFDistributionsMsg, CFOriginsMsg, CFBehaviorsMsg, CFInvalidationsMsg, CFPoliciesMsg, CFFunctionsMsg, CFErrorMsg, CFMenuMsg:
+		m.cfModel, cmd = m.cfModel.Update(msg)
 		return m, cmd
 
 	case IdentityMsg:
@@ -391,6 +514,64 @@ func (m Model) View() string {
 		}
 	} else if m.view == viewLambda {
 		titleText = "Lambda Functions"
+	} else if m.view == viewEC2 {
+		switch m.ec2Model.state {
+		case EC2StateMenu:
+			titleText = "EC2 Resources"
+		case EC2StateInstances:
+			titleText = "Instances"
+		case EC2StateSecurityGroups:
+			titleText = "Security Groups"
+		case EC2StateVolumes:
+			titleText = "Volumes"
+		case EC2StateTargetGroups:
+			titleText = "Target Groups"
+		}
+	} else if m.view == viewRDS {
+		switch m.rdsModel.state {
+		case RDSStateMenu:
+			titleText = "RDS Databases"
+		case RDSStateInstances:
+			titleText = "Databases"
+		case RDSStateClusters:
+			titleText = "Clusters"
+		case RDSStateSnapshots:
+			titleText = "Snapshots"
+		case RDSStateSubnetGroups:
+			titleText = "Subnet Groups"
+		}
+	} else if m.view == viewCW {
+		switch m.cwModel.state {
+		case CWStateMenu:
+			titleText = "CloudWatch Logs"
+		case CWStateLogGroups:
+			titleText = "Log Groups"
+		case CWStateLogStreams:
+			titleText = "Log Streams"
+		case CWStateLogEvents:
+			titleText = "Log Events"
+		case CWStateLogDetail:
+			titleText = "Log Detail"
+		}
+	} else if m.view == viewCF {
+		switch m.cfModel.state {
+		case CFStateMenu:
+			titleText = "CloudFront"
+		case CFStateDistributions:
+			titleText = "Distributions"
+		case CFStateDistroSubMenu:
+			titleText = "Distribution Details"
+		case CFStateOrigins:
+			titleText = "Origins"
+		case CFStateBehaviors:
+			titleText = "Behaviors"
+		case CFStateInvalidations:
+			titleText = "Invalidations"
+		case CFStatePolicies:
+			titleText = "Policies"
+		case CFStateFunctions:
+			titleText = "Functions"
+		}
 	}
 	currentViewTitle := m.styles.ViewTitle.Render(titleText)
 
@@ -483,11 +664,11 @@ func (m Model) View() string {
 	// 3. MAIN BOX CONTENT
 	var boxContent string
 	if m.profileSelector.active {
-		popup := m.styles.Popup.Width(36).Render(
+		popup := m.styles.Popup.Width(38).Render(
 			m.profileSelector.View(),
 		)
-		headerHeight := lipgloss.Height(header)
-		boxContent = lipgloss.Place(m.width, m.height-headerHeight-7, lipgloss.Center, lipgloss.Center, popup)
+		w, h := GetMainContainerSize(m.width, m.height)
+		boxContent = lipgloss.Place(w, h-AppInternalFooterHeight-2, lipgloss.Center, lipgloss.Center, popup)
 	} else {
 		switch m.view {
 		case viewS3:
@@ -498,6 +679,14 @@ func (m Model) View() string {
 			boxContent = m.vpcModel.View()
 		case viewLambda:
 			boxContent = m.lambdaModel.View()
+		case viewEC2:
+			boxContent = m.ec2Model.View()
+		case viewRDS:
+			boxContent = m.rdsModel.View()
+		case viewCW:
+			boxContent = m.cwModel.View()
+		case viewCF:
+			boxContent = m.cfModel.View()
 		default:
 			// Home View
 			logo := `
@@ -520,23 +709,21 @@ func (m Model) View() string {
 			menuContent.WriteString(lipgloss.NewStyle().Foreground(m.styles.Primary).Bold(true).Render(" AVAILABLE SERVICES ") + "\n\n")
 
 			featureIcons := map[string]string{
-				"S3 Buckets":                       "󱐖 ",
-				"IAM Users":                        " ",
-				"VPC Network":                      "󰛳 ",
-				"Lambda Functions":                 "󰘧 ",
-				"EC2 Instances (Coming Soon)":      " ",
-				"RDS Databases (Coming Soon)":      "󰆼 ",
-				"CloudWatch Logs (Coming Soon)":    "󱖉 ",
-				"SQS Queues (Coming Soon)":         "󰒔 ",
-				"SNS Topics (Coming Soon)":         "󰰓 ",
-				"Route 53 Zones (Coming Soon)":     "󰇧 ",
-				"Secrets Manager (Coming Soon)":    "󰌆 ",
-				"ELB Load Balancers (Coming Soon)": "󰀯 ",
-				"EBS Volumes (Coming Soon)":        "󰋊 ",
-				"ACM Certificates (Coming Soon)":   "󰔕 ",
-				"CloudFront Distros (Coming Soon)": "󰇄 ",
-				"ElastiCache (Coming Soon)":        "󰓡 ",
-				"KMS Keys (Coming Soon)":           "󰌆 ",
+				"S3 Buckets":                "󱐖 ",
+				"IAM Users":                 " ",
+				"VPC Network":               "󰛳 ",
+				"Lambda Functions":          "󰘧 ",
+				"EC2 Resources":             " ",
+				"RDS Databases":            "󰆼 ",
+				"CloudWatch Logs":           "󱖉 ",
+				"CloudFront Distros":        "󰇄 ",
+				"SQS Queues (Todo)":         "󰒔 ",
+				"ElastiCache (Todo)":        "󰓡 ",
+				"Secrets Manager (Todo)":    "󰌆 ",
+				"ACM Certificates (Todo)":   "󰔕 ",
+				"Route 53 Zones (Todo)":     "󰇧 ",
+				"SNS Topics (Todo)":         "󰰓 ",
+				"KMS Keys (Todo)":           "󰌆 ",
 			}
 
 			for i, feature := range m.features {

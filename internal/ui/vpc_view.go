@@ -319,6 +319,7 @@ func (m VPCModel) Update(msg tea.Msg) (VPCModel, tea.Cmd) {
 
 	case VPCMenuMsg:
 		m.list.SetItems(msg)
+		m.list.ResetSelected()
 		m.state = VPCStateMenu
 		m.updateDelegate()
 
@@ -339,6 +340,7 @@ func (m VPCModel) Update(msg tea.Msg) (VPCModel, tea.Cmd) {
 			}
 		}
 		m.list.SetItems(items)
+		m.list.ResetSelected()
 		m.state = VPCStateVPCs
 		m.updateDelegate()
 
@@ -355,6 +357,7 @@ func (m VPCModel) Update(msg tea.Msg) (VPCModel, tea.Cmd) {
 			}
 		}
 		m.list.SetItems(items)
+		m.list.ResetSelected()
 		m.state = VPCStateSubnets
 		m.updateDelegate()
 
@@ -371,6 +374,7 @@ func (m VPCModel) Update(msg tea.Msg) (VPCModel, tea.Cmd) {
 			}
 		}
 		m.list.SetItems(items)
+		m.list.ResetSelected()
 		m.state = VPCStateNatGateways
 		m.updateDelegate()
 
@@ -387,6 +391,7 @@ func (m VPCModel) Update(msg tea.Msg) (VPCModel, tea.Cmd) {
 			}
 		}
 		m.list.SetItems(items)
+		m.list.ResetSelected()
 		m.state = VPCStateRouteTables
 		m.updateDelegate()
 
@@ -402,6 +407,7 @@ func (m VPCModel) Update(msg tea.Msg) (VPCModel, tea.Cmd) {
 			}
 		}
 		m.list.SetItems(items)
+		m.list.ResetSelected()
 		m.state = VPCStateVpnGateways
 		m.updateDelegate()
 
