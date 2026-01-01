@@ -38,6 +38,7 @@ const (
 	viewACM
 	viewSNS
 	viewKMS
+	viewDMS
 )
 
 type Model struct {
@@ -63,6 +64,7 @@ type Model struct {
 	acmModel        ACMModel
 	snsModel        SNSModel
 	kmsModel        KMSModel
+	dmsModel        DMSModel
 	features        []string
 	selectedFeature int
 	width           int
@@ -149,6 +151,7 @@ func NewModel() (Model, error) {
 			"ACM Certificates",
 			"SNS Topics",
 			"KMS Keys",
+			"Data Migration Service",
 		},
 		cache:     appCache,
 		cacheKeys: cache.NewKeyBuilder(selected),
@@ -281,6 +284,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.view == viewKMS {
 			m.kmsModel.SetSize(m.width, m.height)
 			m.kmsModel, cmd = m.kmsModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewDMS {
+			m.dmsModel.SetSize(m.width, m.height)
+			m.dmsModel, cmd = m.dmsModel.Update(msg)
 			cmds = append(cmds, cmd)
 		}
 		m.ready = true
@@ -449,6 +457,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		}
 
+		if m.view == viewDMS {
+			if msg.String() == "esc" && m.dmsModel.state == DMSStateMenu {
+				m.view = viewHome
+				return m, nil
+			}
+			m.dmsModel, cmd = m.dmsModel.Update(msg)
+			return m, cmd
+		}
+
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
@@ -568,6 +585,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.kmsModel.SetSize(m.width, m.height)
 				return m, m.kmsModel.Init()
 			}
+			if m.features[m.selectedFeature] == "Data Migration Service" {
+				m.view = viewDMS
+				m.dmsModel = NewDMSModel(m.selectedProfile, m.styles, m.cache)
+				m.dmsModel.SetSize(m.width, m.height)
+				return m, m.dmsModel.Init()
+			}
 		}
 
 	case ProfileSelectedMsg:
@@ -656,6 +679,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.kmsModel.SetSize(m.width, m.height)
 			return m, tea.Batch(m.kmsModel.Init(), m.fetchIdentity())
 		}
+		if m.view == viewDMS {
+			m.dmsModel = NewDMSModel(m.selectedProfile, m.styles, m.cache)
+			m.dmsModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.dmsModel.Init(), m.fetchIdentity())
+		}
 		return m, m.fetchIdentity()
 
 	case S3BucketsMsg, S3ObjectsMsg, S3ErrorMsg, S3SuccessMsg:
@@ -720,6 +748,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case KMSKeysMsg, KMSErrorMsg:
 		m.kmsModel, cmd = m.kmsModel.Update(msg)
+		return m, cmd
+
+	case DMSTasksMsg, DMSEndpointsMsg, DMSInstancesMsg, DMSErrorMsg:
+		m.dmsModel, cmd = m.dmsModel.Update(msg)
 		return m, cmd
 
 	case IdentityMsg:
@@ -878,6 +910,19 @@ func (m Model) View() string {
 		titleText = "SNS / Topics"
 	} else if m.view == viewKMS {
 		titleText = "KMS / Keys"
+	} else if m.view == viewDMS {
+		titleParts := []string{"DMS"}
+		switch m.dmsModel.state {
+		case DMSStateMenu:
+			// Just DMS
+		case DMSStateTasks:
+			titleParts = append(titleParts, "Tasks")
+		case DMSStateEndpoints:
+			titleParts = append(titleParts, "Endpoints")
+		case DMSStateInstances:
+			titleParts = append(titleParts, "Instances")
+		}
+		titleText = strings.Join(titleParts, " / ")
 	}
 	currentViewTitle := m.styles.ViewTitle.Render(titleText)
 
@@ -962,6 +1007,10 @@ func (m Model) View() string {
 				m.styles.StatusKey.Render("d")+" "+m.styles.StatusMuted.Render("Delete"),
 			)
 		}
+	} else if m.view == viewDMS {
+		if m.dmsModel.state == DMSStateTasks {
+			footerHints = append(footerHints, m.styles.StatusKey.Render("o")+" "+m.styles.StatusMuted.Render("Options"))
+		}
 	}
 
 	footerHints = append(footerHints, m.styles.StatusKey.Render("q")+" "+m.styles.StatusMuted.Render("Quit"))
@@ -1009,6 +1058,8 @@ func (m Model) View() string {
 			boxContent = m.snsModel.View()
 		case viewKMS:
 			boxContent = m.kmsModel.View()
+		case viewDMS:
+			boxContent = m.dmsModel.View()
 		default:
 			// Home View
 			logo := `
@@ -1047,7 +1098,7 @@ func (m Model) View() string {
 				"ACM Certificates":          "󰔕 ",
 				"SNS Topics":                "󰰓 ",
 				"KMS Keys":                  "󰌆 ",
-				"ACM Certificates (Todo)":   "󰔕 ",
+				"Data Migration Service":    "󰆼 ",
 			}
 
 			for i, feature := range m.features {

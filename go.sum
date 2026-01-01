@@ -26,6 +26,8 @@ github.com/aws/aws-sdk-go-v2/service/cloudfront v1.58.3 h1:/nyo0QD97D5VQQL/UE+rK
 github.com/aws/aws-sdk-go-v2/service/cloudfront v1.58.3/go.mod h1:Jp0zmzn87l3dKarpDT/qbHNyISst5OnmzMACKuiyMvY=
 github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.63.0 h1:vEc1y56GbepIC0/NsYfFn4splRMNXgJTTG3G1B/6Ov0=
 github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.63.0/go.mod h1:ESQxVIp7hs1MdsdEF4KITf65SfM3fh/EEiYi+s0S/pE=
+github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.61.4 h1:VZPtiKyYIYrGwYJRuGrIOET49EfrShg15Df1EqMnZM8=
+github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.61.4/go.mod h1:zdGe5blZ1/o2aXdRY2u1tvlSTEHMYm9M/Sk508hgHs4=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.279.0 h1:o7eJKe6VYAnqERPlLAvDW5VKXV6eTKv1oxTpMoDP378=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.279.0/go.mod h1:Wg68QRgy2gEGGdmTPU/UbVpdv8sM14bUZmF64KFwAsY=
 github.com/aws/aws-sdk-go-v2/service/elasticache v1.51.8 h1:LiAvvvkFFhvL0AKbsDwEFLC6w4jLOd6r/eNk/b7ZvL4=
