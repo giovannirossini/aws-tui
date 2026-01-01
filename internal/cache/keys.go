@@ -20,6 +20,10 @@ const (
 	TTLRDSResources    = 10 * time.Minute // RDS resources (Instances, Clusters, etc)
 	TTLCWResources     = 5 * time.Minute  // CloudWatch resources
 	TTLCFResources     = 10 * time.Minute // CloudFront resources
+	TTLElastiCacheResources = 10 * time.Minute // ElastiCache resources
+	TTLMSKResources        = 10 * time.Minute // MSK resources
+	TTLSQSResources        = 10 * time.Minute // SQS resources
+	TTLSMResources         = 10 * time.Minute // Secrets Manager resources
 )
 
 // KeyBuilder provides methods to build cache keys
@@ -105,4 +109,24 @@ func (kb *KeyBuilder) CWResources(resourceType string) string {
 // CFResources returns the cache key for CloudFront resources
 func (kb *KeyBuilder) CFResources(resourceType string) string {
 	return fmt.Sprintf("%s:cf:%s", kb.profile, resourceType)
+}
+
+// ElastiCacheResources returns the cache key for ElastiCache resources
+func (kb *KeyBuilder) ElastiCacheResources(resourceType string) string {
+	return fmt.Sprintf("%s:elasticache:%s", kb.profile, resourceType)
+}
+
+// MSKResources returns the cache key for MSK resources
+func (kb *KeyBuilder) MSKResources(resourceType string) string {
+	return fmt.Sprintf("%s:msk:%s", kb.profile, resourceType)
+}
+
+// SQSResources returns the cache key for SQS resources
+func (kb *KeyBuilder) SQSResources(resourceType string) string {
+	return fmt.Sprintf("%s:sqs:%s", kb.profile, resourceType)
+}
+
+// SMResources returns the cache key for Secrets Manager resources
+func (kb *KeyBuilder) SMResources(resourceType string) string {
+	return fmt.Sprintf("%s:sm:%s", kb.profile, resourceType)
 }

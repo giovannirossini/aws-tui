@@ -30,6 +30,10 @@ const (
 	viewRDS
 	viewCW
 	viewCF
+	viewElastiCache
+	viewMSK
+	viewSQS
+	viewSM
 )
 
 type Model struct {
@@ -47,6 +51,10 @@ type Model struct {
 	rdsModel        RDSModel
 	cwModel         CWModel
 	cfModel         CFModel
+	elasticacheModel ElastiCacheModel
+	mskModel        MSKModel
+	sqsModel        SQSModel
+	smModel         SMModel
 	features        []string
 	selectedFeature int
 	width           int
@@ -125,10 +133,10 @@ func NewModel() (Model, error) {
 			"RDS Databases",
 			"CloudWatch Logs",
 			"CloudFront Distros",
-			"ElastiCache (Todo)",
-			"MSK (Todo)",
-			"SQS Queues (Todo)",
-			"Secrets Manager (Todo)",
+			"ElastiCache",
+			"MSK",
+			"SQS Queues",
+			"Secrets Manager",
 			"Route 53 Zones (Todo)",
 			"ACM Certificates (Todo)",
 			"SNS Topics (Todo)",
@@ -227,6 +235,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.cfModel, cmd = m.cfModel.Update(msg)
 			cmds = append(cmds, cmd)
 		}
+		if m.view == viewElastiCache {
+			m.elasticacheModel.SetSize(m.width, m.height)
+			m.elasticacheModel, cmd = m.elasticacheModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewMSK {
+			m.mskModel.SetSize(m.width, m.height)
+			m.mskModel, cmd = m.mskModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewSQS {
+			m.sqsModel.SetSize(m.width, m.height)
+			m.sqsModel, cmd = m.sqsModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewSM {
+			m.smModel.SetSize(m.width, m.height)
+			m.smModel, cmd = m.smModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
 		m.ready = true
 
 	case tea.KeyMsg:
@@ -321,6 +349,42 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		}
 
+		if m.view == viewElastiCache {
+			if msg.String() == "esc" && m.elasticacheModel.state == ElastiCacheStateMenu {
+				m.view = viewHome
+				return m, nil
+			}
+			m.elasticacheModel, cmd = m.elasticacheModel.Update(msg)
+			return m, cmd
+		}
+
+		if m.view == viewMSK {
+			if msg.String() == "esc" {
+				m.view = viewHome
+				return m, nil
+			}
+			m.mskModel, cmd = m.mskModel.Update(msg)
+			return m, cmd
+		}
+
+		if m.view == viewSQS {
+			if msg.String() == "esc" {
+				m.view = viewHome
+				return m, nil
+			}
+			m.sqsModel, cmd = m.sqsModel.Update(msg)
+			return m, cmd
+		}
+
+		if m.view == viewSM {
+			if msg.String() == "esc" && m.smModel.state == SMStateSecrets {
+				m.view = viewHome
+				return m, nil
+			}
+			m.smModel, cmd = m.smModel.Update(msg)
+			return m, cmd
+		}
+
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
@@ -392,6 +456,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cfModel.SetSize(m.width, m.height)
 				return m, m.cfModel.Init()
 			}
+			if m.features[m.selectedFeature] == "ElastiCache" {
+				m.view = viewElastiCache
+				m.elasticacheModel = NewElastiCacheModel(m.selectedProfile, m.styles, m.cache)
+				m.elasticacheModel.SetSize(m.width, m.height)
+				return m, m.elasticacheModel.Init()
+			}
+			if m.features[m.selectedFeature] == "MSK" {
+				m.view = viewMSK
+				m.mskModel = NewMSKModel(m.selectedProfile, m.styles, m.cache)
+				m.mskModel.SetSize(m.width, m.height)
+				return m, m.mskModel.Init()
+			}
+			if m.features[m.selectedFeature] == "SQS Queues" {
+				m.view = viewSQS
+				m.sqsModel = NewSQSModel(m.selectedProfile, m.styles, m.cache)
+				m.sqsModel.SetSize(m.width, m.height)
+				return m, m.sqsModel.Init()
+			}
+			if m.features[m.selectedFeature] == "Secrets Manager" {
+				m.view = viewSM
+				m.smModel = NewSMModel(m.selectedProfile, m.styles, m.cache)
+				m.smModel.SetSize(m.width, m.height)
+				return m, m.smModel.Init()
+			}
 		}
 
 	case ProfileSelectedMsg:
@@ -440,6 +528,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.cfModel.SetSize(m.width, m.height)
 			return m, tea.Batch(m.cfModel.Init(), m.fetchIdentity())
 		}
+		if m.view == viewElastiCache {
+			m.elasticacheModel = NewElastiCacheModel(m.selectedProfile, m.styles, m.cache)
+			m.elasticacheModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.elasticacheModel.Init(), m.fetchIdentity())
+		}
+		if m.view == viewMSK {
+			m.mskModel = NewMSKModel(m.selectedProfile, m.styles, m.cache)
+			m.mskModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.mskModel.Init(), m.fetchIdentity())
+		}
+		if m.view == viewSQS {
+			m.sqsModel = NewSQSModel(m.selectedProfile, m.styles, m.cache)
+			m.sqsModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.sqsModel.Init(), m.fetchIdentity())
+		}
+		if m.view == viewSM {
+			m.smModel = NewSMModel(m.selectedProfile, m.styles, m.cache)
+			m.smModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.smModel.Init(), m.fetchIdentity())
+		}
 		return m, m.fetchIdentity()
 
 	case S3BucketsMsg, S3ObjectsMsg, S3ErrorMsg, S3SuccessMsg:
@@ -474,6 +582,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.cfModel, cmd = m.cfModel.Update(msg)
 		return m, cmd
 
+	case ReplicationGroupsMsg, CacheClustersMsg, ElastiCacheErrorMsg, ElastiCacheMenuMsg:
+		m.elasticacheModel, cmd = m.elasticacheModel.Update(msg)
+		return m, cmd
+
+	case MSKClustersMsg, MSKErrorMsg:
+		m.mskModel, cmd = m.mskModel.Update(msg)
+		return m, cmd
+
+	case SQSQueuesMsg, SQSErrorMsg:
+		m.sqsModel, cmd = m.sqsModel.Update(msg)
+		return m, cmd
+
+	case SMSecretsMsg, SMSecretValueMsg, SMErrorMsg:
+		m.smModel, cmd = m.smModel.Update(msg)
+		return m, cmd
+
 	case IdentityMsg:
 		m.identity = msg
 		return m, nil
@@ -490,88 +614,131 @@ func (m Model) View() string {
 	// 1. DYNAMIC HEADER TITLE
 	titleText := "AWS TUI"
 	if m.view == viewS3 {
-		titleText = "S3 Buckets"
-	} else if m.view == viewIAM {
-		if m.iamModel.state == IAMStateActions {
-			titleText = "IAM Actions"
+		titleParts := []string{"S3"}
+		if m.s3Model.currentBucket != "" {
+			titleParts = append(titleParts, "Buckets", m.s3Model.currentBucket)
+			if m.s3Model.currentPrefix != "" {
+				titleParts = append(titleParts, strings.TrimSuffix(m.s3Model.currentPrefix, "/"))
+			}
 		} else {
-			titleText = "IAM Users"
+			titleParts = append(titleParts, "Buckets")
 		}
+		titleText = strings.Join(titleParts, " / ")
+	} else if m.view == viewIAM {
+		titleParts := []string{"IAM", "Users"}
+		if m.iamModel.state == IAMStateActions || m.iamModel.state == IAMStateConfirmDelete || m.iamModel.state == IAMStateConfirmConsoleToggle {
+			titleParts = append(titleParts, m.iamModel.selectedUser.userName)
+		}
+		titleText = strings.Join(titleParts, " / ")
 	} else if m.view == viewVPC {
+		titleParts := []string{"VPC"}
 		switch m.vpcModel.state {
 		case VPCStateMenu:
-			titleText = "VPC Network"
+			titleParts = append(titleParts, "Network")
 		case VPCStateVPCs:
-			titleText = "VPCs"
+			titleParts = append(titleParts, "VPCs")
 		case VPCStateSubnets:
-			titleText = "Subnets"
+			titleParts = append(titleParts, "Subnets")
 		case VPCStateNatGateways:
-			titleText = "NAT Gateways"
+			titleParts = append(titleParts, "NAT Gateways")
 		case VPCStateRouteTables:
-			titleText = "Route Tables"
+			titleParts = append(titleParts, "Route Tables")
 		case VPCStateVpnGateways:
-			titleText = "VPN Gateways"
+			titleParts = append(titleParts, "VPN Gateways")
 		}
+		titleText = strings.Join(titleParts, " / ")
 	} else if m.view == viewLambda {
-		titleText = "Lambda Functions"
+		titleText = "Lambda / Functions"
 	} else if m.view == viewEC2 {
+		titleParts := []string{"EC2"}
 		switch m.ec2Model.state {
 		case EC2StateMenu:
-			titleText = "EC2 Resources"
+			titleParts = append(titleParts, "Resources")
 		case EC2StateInstances:
-			titleText = "Instances"
+			titleParts = append(titleParts, "Instances")
 		case EC2StateSecurityGroups:
-			titleText = "Security Groups"
+			titleParts = append(titleParts, "Security Groups")
 		case EC2StateVolumes:
-			titleText = "Volumes"
+			titleParts = append(titleParts, "Volumes")
 		case EC2StateTargetGroups:
-			titleText = "Target Groups"
+			titleParts = append(titleParts, "Target Groups")
 		}
+		titleText = strings.Join(titleParts, " / ")
 	} else if m.view == viewRDS {
+		titleParts := []string{"RDS"}
 		switch m.rdsModel.state {
 		case RDSStateMenu:
-			titleText = "RDS Databases"
+			titleParts = append(titleParts, "Databases")
 		case RDSStateInstances:
-			titleText = "Databases"
+			titleParts = append(titleParts, "Databases")
 		case RDSStateClusters:
-			titleText = "Clusters"
+			titleParts = append(titleParts, "Clusters")
 		case RDSStateSnapshots:
-			titleText = "Snapshots"
+			titleParts = append(titleParts, "Snapshots")
 		case RDSStateSubnetGroups:
-			titleText = "Subnet Groups"
+			titleParts = append(titleParts, "Subnet Groups")
 		}
+		titleText = strings.Join(titleParts, " / ")
 	} else if m.view == viewCW {
+		titleParts := []string{"CloudWatch"}
 		switch m.cwModel.state {
 		case CWStateMenu:
-			titleText = "CloudWatch Logs"
+			titleParts = append(titleParts, "Logs")
 		case CWStateLogGroups:
-			titleText = "Log Groups"
+			titleParts = append(titleParts, "Log Groups")
 		case CWStateLogStreams:
-			titleText = "Log Streams"
+			titleParts = append(titleParts, "Log Groups", m.cwModel.selectedGroup)
 		case CWStateLogEvents:
-			titleText = "Log Events"
+			titleParts = append(titleParts, "Log Groups", m.cwModel.selectedGroup, m.cwModel.selectedStream)
 		case CWStateLogDetail:
-			titleText = "Log Detail"
+			titleParts = append(titleParts, "Log Groups", m.cwModel.selectedGroup, m.cwModel.selectedStream, "Detail")
 		}
+		titleText = strings.Join(titleParts, " / ")
 	} else if m.view == viewCF {
+		titleParts := []string{"CloudFront"}
 		switch m.cfModel.state {
 		case CFStateMenu:
-			titleText = "CloudFront"
+			// Just "CloudFront" is fine
 		case CFStateDistributions:
-			titleText = "Distributions"
+			titleParts = append(titleParts, "Distributions")
 		case CFStateDistroSubMenu:
-			titleText = "Distribution Details"
+			titleParts = append(titleParts, "Distributions", m.cfModel.selectedDistro)
 		case CFStateOrigins:
-			titleText = "Origins"
+			titleParts = append(titleParts, "Distributions", m.cfModel.selectedDistro, "Origins")
 		case CFStateBehaviors:
-			titleText = "Behaviors"
+			titleParts = append(titleParts, "Distributions", m.cfModel.selectedDistro, "Behaviors")
 		case CFStateInvalidations:
-			titleText = "Invalidations"
+			titleParts = append(titleParts, "Distributions", m.cfModel.selectedDistro, "Invalidations")
 		case CFStatePolicies:
-			titleText = "Policies"
+			titleParts = append(titleParts, "Policies")
 		case CFStateFunctions:
-			titleText = "Functions"
+			titleParts = append(titleParts, "Functions")
 		}
+		titleText = strings.Join(titleParts, " / ")
+	} else if m.view == viewElastiCache {
+		titleParts := []string{"ElastiCache"}
+		switch m.elasticacheModel.state {
+		case ElastiCacheStateMenu:
+			titleParts = append(titleParts, "Resources")
+		case ElastiCacheStateReplicationGroups:
+			titleParts = append(titleParts, "Replication Groups")
+		case ElastiCacheStateCacheClusters:
+			titleParts = append(titleParts, "Cache Clusters")
+		}
+		titleText = strings.Join(titleParts, " / ")
+	} else if m.view == viewMSK {
+		titleText = "MSK / Clusters"
+	} else if m.view == viewSQS {
+		titleText = "SQS / Queues"
+	} else if m.view == viewSM {
+		titleParts := []string{"Secrets Manager"}
+		switch m.smModel.state {
+		case SMStateSecrets:
+			titleParts = append(titleParts, "Secrets")
+		case SMStateValue:
+			titleParts = append(titleParts, "Secrets", m.smModel.selectedSecret)
+		}
+		titleText = strings.Join(titleParts, " / ")
 	}
 	currentViewTitle := m.styles.ViewTitle.Render(titleText)
 
@@ -687,6 +854,14 @@ func (m Model) View() string {
 			boxContent = m.cwModel.View()
 		case viewCF:
 			boxContent = m.cfModel.View()
+		case viewElastiCache:
+			boxContent = m.elasticacheModel.View()
+		case viewMSK:
+			boxContent = m.mskModel.View()
+		case viewSQS:
+			boxContent = m.sqsModel.View()
+		case viewSM:
+			boxContent = m.smModel.View()
 		default:
 			// Home View
 			logo := `
@@ -717,9 +892,10 @@ func (m Model) View() string {
 				"RDS Databases":            "󰆼 ",
 				"CloudWatch Logs":           "󱖉 ",
 				"CloudFront Distros":        "󰇄 ",
-				"SQS Queues (Todo)":         "󰒔 ",
-				"ElastiCache (Todo)":        "󰓡 ",
-				"Secrets Manager (Todo)":    "󰌆 ",
+				"ElastiCache":               "󰓡 ",
+				"MSK":                       "󰒔 ",
+				"SQS Queues":                "󰒔 ",
+				"Secrets Manager":           "󰌆 ",
 				"ACM Certificates (Todo)":   "󰔕 ",
 				"Route 53 Zones (Todo)":     "󰇧 ",
 				"SNS Topics (Todo)":         "󰰓 ",

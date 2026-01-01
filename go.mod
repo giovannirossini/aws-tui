@@ -24,15 +24,19 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.58.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.63.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.279.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/elasticache v1.51.8 // indirect
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.54.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/iam v1.53.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.9.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.16 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.16 // indirect
+	github.com/aws/aws-sdk-go-v2/service/kafka v1.46.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.87.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/rds v1.113.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/signin v1.0.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.20 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.30.8 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.12 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.5 // indirect
