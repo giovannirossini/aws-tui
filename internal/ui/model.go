@@ -332,6 +332,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		}
 
+		// Handle global keys that should work in all views (unless in input state)
+		if !m.isInputFocused() {
+			switch msg.String() {
+			case "p", "P":
+				m.profileSelector.active = true
+				m.profileSelector.list.FilterInput.Focus()
+				return m, nil
+			case "q", "ctrl+c":
+				return m, tea.Quit
+			}
+		} else {
+			// Even in input mode, ctrl+c should quit
+			if msg.String() == "ctrl+c" {
+				return m, tea.Quit
+			}
+		}
+
 		if m.view == viewS3 {
 			// ... (existing S3 handling)
 			if msg.String() == "esc" && m.s3Model.state == S3StateBuckets {
@@ -540,17 +557,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		switch msg.String() {
-		case "q", "ctrl+c":
-			return m, tea.Quit
 		case "r": // Manual refresh
 			if m.view == viewHome {
 				m.cache.Delete(m.cacheKeys.Identity())
 				return m, m.fetchIdentity()
 			}
-		case "p", "P":
-			m.profileSelector.active = true
-			m.profileSelector.list.FilterInput.Focus()
-			return m, nil
 		case "tab":
 			// No-op, header is non-interactive
 		case "up":
@@ -1367,4 +1378,14 @@ func (m Model) View() string {
 
 func (m Model) renderMainContainer(content string, footer string) string {
 	return RenderBoxedContainer(m.styles, content, footer, m.width, m.height)
+}
+
+func (m Model) isInputFocused() bool {
+	if m.view == viewS3 && m.s3Model.state == S3StateInput {
+		return true
+	}
+	if m.view == viewIAM && m.iamModel.state == IAMStateInput {
+		return true
+	}
+	return false
 }
