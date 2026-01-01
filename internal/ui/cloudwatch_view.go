@@ -54,6 +54,7 @@ type CWModel struct {
 	selectedGroup    string
 	selectedStream   string
 	selectedMessage  string
+	originView       viewState
 }
 
 type cwItemDelegate struct {

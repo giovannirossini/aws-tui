@@ -66,19 +66,23 @@ func RenderTableHelpers(m list.Model, styles Styles, columns []Column) ([]lipglo
 }
 
 func RenderTableRow(w io.Writer, m list.Model, styles Styles, columnStyles []lipgloss.Style, values []string, isSelected bool) {
-	rowValues := make([]string, len(columnStyles))
+	numCols := len(columnStyles)
+	if len(values) < numCols {
+		numCols = len(values)
+	}
+	rowValues := make([]string, numCols)
 
 	contentColor := styles.Snow
 	if isSelected {
 		contentColor = styles.Primary
 	}
 
-	for i, val := range values {
+	for i := 0; i < numCols; i++ {
 		style := columnStyles[i].Copy().Foreground(contentColor)
 		if isSelected {
 			style = style.Bold(true)
 		}
-		rowValues[i] = style.Render(val)
+		rowValues[i] = style.Render(values[i])
 	}
 
 	row := lipgloss.JoinHorizontal(lipgloss.Top, rowValues...)

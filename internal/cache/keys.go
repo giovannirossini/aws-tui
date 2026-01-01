@@ -29,6 +29,7 @@ const (
 	TTLSNSResources        = 10 * time.Minute // SNS resources
 	TTLKMSResources        = 10 * time.Minute // KMS resources
 	TTLDMSResources        = 10 * time.Minute // DMS resources
+	TTLECSResources        = 10 * time.Minute // ECS resources
 )
 
 // KeyBuilder provides methods to build cache keys
@@ -159,4 +160,9 @@ func (kb *KeyBuilder) KMSResources(resourceType string) string {
 // DMSResources returns the cache key for DMS resources
 func (kb *KeyBuilder) DMSResources(resourceType string) string {
 	return fmt.Sprintf("%s:dms:%s", kb.profile, resourceType)
+}
+
+// ECSResources returns the cache key for ECS resources
+func (kb *KeyBuilder) ECSResources(resourceType string) string {
+	return fmt.Sprintf("%s:ecs:%s", kb.profile, resourceType)
 }

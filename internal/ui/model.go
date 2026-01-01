@@ -39,6 +39,7 @@ const (
 	viewSNS
 	viewKMS
 	viewDMS
+	viewECS
 )
 
 type Model struct {
@@ -65,6 +66,7 @@ type Model struct {
 	snsModel        SNSModel
 	kmsModel        KMSModel
 	dmsModel        DMSModel
+	ecsModel        ECSModel
 	features        []string
 	selectedFeature int
 	width           int
@@ -152,6 +154,7 @@ func NewModel() (Model, error) {
 			"SNS Topics",
 			"KMS Keys",
 			"Data Migration Service",
+			"Elastic Container Service",
 		},
 		cache:     appCache,
 		cacheKeys: cache.NewKeyBuilder(selected),
@@ -291,6 +294,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.dmsModel, cmd = m.dmsModel.Update(msg)
 			cmds = append(cmds, cmd)
 		}
+		if m.view == viewECS {
+			m.ecsModel.SetSize(m.width, m.height)
+			m.ecsModel, cmd = m.ecsModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
 		m.ready = true
 
 	case tea.KeyMsg:
@@ -368,6 +376,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if m.view == viewCW {
+			if msg.String() == "esc" && m.cwModel.state == CWStateLogStreams && m.cwModel.originView == viewECS {
+				m.view = viewECS
+				return m, nil
+			}
 			if msg.String() == "esc" && m.cwModel.state == CWStateMenu {
 				m.view = viewHome
 				return m, nil
@@ -463,6 +475,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			m.dmsModel, cmd = m.dmsModel.Update(msg)
+			return m, cmd
+		}
+
+		if m.view == viewECS {
+			if msg.String() == "esc" && m.ecsModel.state == ECSStateMenu {
+				m.view = viewHome
+				return m, nil
+			}
+			m.ecsModel, cmd = m.ecsModel.Update(msg)
 			return m, cmd
 		}
 
@@ -591,6 +612,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.dmsModel.SetSize(m.width, m.height)
 				return m, m.dmsModel.Init()
 			}
+			if m.features[m.selectedFeature] == "Elastic Container Service" {
+				m.view = viewECS
+				m.ecsModel = NewECSModel(m.selectedProfile, m.styles, m.cache)
+				m.ecsModel.SetSize(m.width, m.height)
+				return m, m.ecsModel.Init()
+			}
 		}
 
 	case ProfileSelectedMsg:
@@ -684,6 +711,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.dmsModel.SetSize(m.width, m.height)
 			return m, tea.Batch(m.dmsModel.Init(), m.fetchIdentity())
 		}
+		if m.view == viewECS {
+			m.ecsModel = NewECSModel(m.selectedProfile, m.styles, m.cache)
+			m.ecsModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.ecsModel.Init(), m.fetchIdentity())
+		}
 		return m, m.fetchIdentity()
 
 	case S3BucketsMsg, S3ObjectsMsg, S3ErrorMsg, S3SuccessMsg:
@@ -750,9 +782,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.kmsModel, cmd = m.kmsModel.Update(msg)
 		return m, cmd
 
-	case DMSTasksMsg, DMSEndpointsMsg, DMSInstancesMsg, DMSErrorMsg:
+	case DMSTasksMsg, DMSEndpointsMsg, DMSInstancesMsg, DMSErrorMsg, DMSSuccessMsg:
 		m.dmsModel, cmd = m.dmsModel.Update(msg)
 		return m, cmd
+
+	case ECSClustersMsg, ECSServicesMsg, ECSTasksMsg, ECSEventsMsg, ECSTaskDefsMsg, ECSTaskDefFamiliesMsg, ECSTaskDefJSONMsg, ECSErrorMsg, ECSSuccessMsg:
+		m.ecsModel, cmd = m.ecsModel.Update(msg)
+		return m, cmd
+
+	case ECSLogGroupMsg:
+		m.view = viewCW
+		m.cwModel = NewCWModel(m.selectedProfile, m.styles, m.cache)
+		m.cwModel.SetSize(m.width, m.height)
+		m.cwModel.selectedGroup = string(msg)
+		m.cwModel.state = CWStateLogStreams
+		m.cwModel.originView = viewECS
+		return m, m.cwModel.fetchLogStreams(string(msg))
 
 	case IdentityMsg:
 		m.identity = msg
@@ -923,6 +968,29 @@ func (m Model) View() string {
 			titleParts = append(titleParts, "Instances")
 		}
 		titleText = strings.Join(titleParts, " / ")
+	} else if m.view == viewECS {
+		titleParts := []string{"ECS"}
+		if m.ecsModel.selectedCluster != "" {
+			titleParts = append(titleParts, m.ecsModel.selectedCluster)
+			if m.ecsModel.selectedService != "" {
+				titleParts = append(titleParts, m.ecsModel.selectedService)
+				switch m.ecsModel.state {
+				case ECSStateTasks:
+					titleParts = append(titleParts, "Tasks")
+				case ECSStateEvents:
+					titleParts = append(titleParts, "Events")
+				}
+			} else {
+				titleParts = append(titleParts, "Services")
+			}
+		} else if m.ecsModel.state == ECSStateTaskDefFamilies {
+			titleParts = append(titleParts, "Task Definitions")
+		} else if m.ecsModel.state == ECSStateTaskDefRevisions {
+			titleParts = append(titleParts, "Task Definitions", m.ecsModel.selectedTaskDefFamily)
+		} else {
+			titleParts = append(titleParts, "Resources")
+		}
+		titleText = strings.Join(titleParts, " / ")
 	}
 	currentViewTitle := m.styles.ViewTitle.Render(titleText)
 
@@ -1011,6 +1079,10 @@ func (m Model) View() string {
 		if m.dmsModel.state == DMSStateTasks {
 			footerHints = append(footerHints, m.styles.StatusKey.Render("o")+" "+m.styles.StatusMuted.Render("Options"))
 		}
+	} else if m.view == viewECS {
+		if m.ecsModel.state == ECSStateTasks || m.ecsModel.state == ECSStateServices {
+			footerHints = append(footerHints, m.styles.StatusKey.Render("o")+" "+m.styles.StatusMuted.Render("Options"))
+		}
 	}
 
 	footerHints = append(footerHints, m.styles.StatusKey.Render("q")+" "+m.styles.StatusMuted.Render("Quit"))
@@ -1060,6 +1132,8 @@ func (m Model) View() string {
 			boxContent = m.kmsModel.View()
 		case viewDMS:
 			boxContent = m.dmsModel.View()
+		case viewECS:
+			boxContent = m.ecsModel.View()
 		default:
 			// Home View
 			logo := `
@@ -1099,6 +1173,7 @@ func (m Model) View() string {
 				"SNS Topics":                "󰰓 ",
 				"KMS Keys":                  "󰌆 ",
 				"Data Migration Service":    "󰆼 ",
+				"Elastic Container Service": "󰙨 ",
 			}
 
 			for i, feature := range m.features {
