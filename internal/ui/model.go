@@ -7,10 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/giovannirossini/aws-tui/internal/aws"
 	"github.com/giovannirossini/aws-tui/internal/cache"
+	"github.com/sahilm/fuzzy"
 )
 
 type focus int
@@ -56,6 +58,272 @@ type ServiceCategory struct {
 	Services []string
 }
 
+// featureIcons is the single source of truth for all service names and their icons
+var featureIcons = map[string]string{
+	"Simple Storage Service (S3)":        "󱐖 ",
+	"IAM Users":                          " ",
+	"Virtual Private Cloud (VPC)":        "󰛳 ",
+	"Lambda Functions":                   "󰘧 ",
+	"Elastic Compute Cloud (EC2)":        " ",
+	"Relational Database Service (RDS)":  "󰆼 ",
+	"CloudWatch":                         "󱖉 ",
+	"CloudFront":                         "󰇄 ",
+	"ElastiCache (Redis)":                "󰓡 ",
+	"Managed Streaming for Kakfa (MSK)":  "󰒔 ",
+	"Simple Queue Service (SQS)":         "󰒔 ",
+	"Secrets Manager":                    "󰌆 ",
+	"Route 53":                           "󰇧 ",
+	"Certificate Manager (ACM)":          "󰔕 ",
+	"Simple Notification Service (SNS)":  "󰰓 ",
+	"KMS Keys":                           "󰌆 ",
+	"Data Migration Service (DMS)":       "󰆼 ",
+	"Elastic Container Service (ECS)":    "󰙨 ",
+	"Billing & Costs":                    "󰠶 ",
+	"Security Hub":                       "󰒙 ",
+	"Web Application Firewall (WAFv2)":   "󰖛 ",
+	"Elastic Container Repository (ECR)": "󰙨 ",
+	"Elastic File System (EFS)":          "󰙨 ",
+	"AWS Backup":                         "󰁯 ",
+	"DynamoDB":                           "󰆼 ",
+	"AWS Transfer":                       "󰛳 ",
+}
+
+// serviceHandler is a function type that handles service selection
+type serviceHandler func(m *Model) (tea.Model, tea.Cmd)
+
+// getServiceHandlers returns a map of service names to their handlers
+func getServiceHandlers() map[string]serviceHandler {
+	return map[string]serviceHandler{
+		"Simple Storage Service (S3)": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewS3
+			m.s3Model = NewS3Model(m.selectedProfile, m.styles, m.cache)
+			m.s3Model.SetSize(m.width, m.height)
+			return *m, m.s3Model.Init()
+		},
+		"IAM Users": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewIAM
+			m.iamModel = NewIAMModel(m.selectedProfile, m.styles, m.cache)
+			m.iamModel.SetSize(m.width, m.height)
+			return *m, m.iamModel.Init()
+		},
+		"Virtual Private Cloud (VPC)": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewVPC
+			m.vpcModel = NewVPCModel(m.selectedProfile, m.styles, m.cache)
+			m.vpcModel.SetSize(m.width, m.height)
+			return *m, m.vpcModel.Init()
+		},
+		"Lambda Functions": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewLambda
+			m.lambdaModel = NewLambdaModel(m.selectedProfile, m.styles, m.cache)
+			m.lambdaModel.SetSize(m.width, m.height)
+			return *m, m.lambdaModel.Init()
+		},
+		"Elastic Compute Cloud (EC2)": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewEC2
+			m.ec2Model = NewEC2Model(m.selectedProfile, m.styles, m.cache)
+			m.ec2Model.SetSize(m.width, m.height)
+			return *m, m.ec2Model.Init()
+		},
+		"Relational Database Service (RDS)": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewRDS
+			m.rdsModel = NewRDSModel(m.selectedProfile, m.styles, m.cache)
+			m.rdsModel.SetSize(m.width, m.height)
+			return *m, m.rdsModel.Init()
+		},
+		"CloudWatch": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewCW
+			m.cwModel = NewCWModel(m.selectedProfile, m.styles, m.cache)
+			m.cwModel.SetSize(m.width, m.height)
+			return *m, m.cwModel.Init()
+		},
+		"CloudFront": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewCF
+			m.cfModel = NewCFModel(m.selectedProfile, m.styles, m.cache)
+			m.cfModel.SetSize(m.width, m.height)
+			return *m, m.cfModel.Init()
+		},
+		"ElastiCache (Redis)": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewElastiCache
+			m.elasticacheModel = NewElastiCacheModel(m.selectedProfile, m.styles, m.cache)
+			m.elasticacheModel.SetSize(m.width, m.height)
+			return *m, m.elasticacheModel.Init()
+		},
+		"Managed Streaming for Kakfa (MSK)": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewMSK
+			m.mskModel = NewMSKModel(m.selectedProfile, m.styles, m.cache)
+			m.mskModel.SetSize(m.width, m.height)
+			return *m, m.mskModel.Init()
+		},
+		"Simple Queue Service (SQS)": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewSQS
+			m.sqsModel = NewSQSModel(m.selectedProfile, m.styles, m.cache)
+			m.sqsModel.SetSize(m.width, m.height)
+			return *m, m.sqsModel.Init()
+		},
+		"Secrets Manager": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewSM
+			m.smModel = NewSMModel(m.selectedProfile, m.styles, m.cache)
+			m.smModel.SetSize(m.width, m.height)
+			return *m, m.smModel.Init()
+		},
+		"Route 53": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewRoute53
+			m.route53Model = NewRoute53Model(m.selectedProfile, m.styles, m.cache)
+			m.route53Model.SetSize(m.width, m.height)
+			return *m, m.route53Model.Init()
+		},
+		"Certificate Manager (ACM)": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewACM
+			m.acmModel = NewACMModel(m.selectedProfile, m.styles, m.cache)
+			m.acmModel.SetSize(m.width, m.height)
+			return *m, m.acmModel.Init()
+		},
+		"Simple Notification Service (SNS)": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewSNS
+			m.snsModel = NewSNSModel(m.selectedProfile, m.styles, m.cache)
+			m.snsModel.SetSize(m.width, m.height)
+			return *m, m.snsModel.Init()
+		},
+		"KMS Keys": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewKMS
+			m.kmsModel = NewKMSModel(m.selectedProfile, m.styles, m.cache)
+			m.kmsModel.SetSize(m.width, m.height)
+			return *m, m.kmsModel.Init()
+		},
+		"Data Migration Service (DMS)": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewDMS
+			m.dmsModel = NewDMSModel(m.selectedProfile, m.styles, m.cache)
+			m.dmsModel.SetSize(m.width, m.height)
+			return *m, m.dmsModel.Init()
+		},
+		"Elastic Container Service (ECS)": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewECS
+			m.ecsModel = NewECSModel(m.selectedProfile, m.styles, m.cache)
+			m.ecsModel.SetSize(m.width, m.height)
+			return *m, m.ecsModel.Init()
+		},
+		"Billing & Costs": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewBilling
+			m.billingModel = NewBillingModel(m.selectedProfile, m.styles, m.cache)
+			m.billingModel.SetSize(m.width, m.height)
+			return *m, m.billingModel.Init()
+		},
+		"Security Hub": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewSecurityHub
+			m.securityhubModel = NewSecurityHubModel(m.selectedProfile, m.styles, m.cache)
+			m.securityhubModel.SetSize(m.width, m.height)
+			return *m, m.securityhubModel.Init()
+		},
+		"Web Application Firewall (WAFv2)": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewWAF
+			region := "us-east-1"
+			if m.identity != nil {
+				region = m.identity.Region
+			}
+			m.wafModel = NewWAFModel(m.selectedProfile, m.styles, m.cache, region)
+			m.wafModel.SetSize(m.width, m.height)
+			return *m, m.wafModel.Init()
+		},
+		"Elastic Container Repository (ECR)": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewECR
+			m.ecrModel = NewECRModel(m.selectedProfile, m.styles, m.cache)
+			m.ecrModel.SetSize(m.width, m.height)
+			return *m, m.ecrModel.Init()
+		},
+		"Elastic File System (EFS)": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewEFS
+			m.efsModel = NewEFSModel(m.selectedProfile, m.styles, m.cache)
+			m.efsModel.SetSize(m.width, m.height)
+			return *m, m.efsModel.Init()
+		},
+		"AWS Backup": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewBackup
+			m.backupModel = NewBackupModel(m.selectedProfile, m.styles, m.cache)
+			m.backupModel.SetSize(m.width, m.height)
+			return *m, m.backupModel.Init()
+		},
+		"DynamoDB": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewDynamoDB
+			m.dynamodbModel = NewDynamoDBModel(m.selectedProfile, m.styles, m.cache)
+			m.dynamodbModel.SetSize(m.width, m.height)
+			return *m, m.dynamodbModel.Init()
+		},
+		"AWS Transfer": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewTransfer
+			m.transferModel = NewTransferModel(m.selectedProfile, m.styles, m.cache)
+			m.transferModel.SetSize(m.width, m.height)
+			return *m, m.transferModel.Init()
+		},
+	}
+}
+
+// getServiceCategories returns services organized by category
+func getServiceCategories() []ServiceCategory {
+	return []ServiceCategory{
+		{
+			Name: "Compute & Containers",
+			Services: []string{
+				"Elastic Compute Cloud (EC2)",
+				"Lambda Functions",
+				"Elastic Container Service (ECS)",
+				"Elastic Container Repository (ECR)",
+			},
+		},
+		{
+			Name: "Storage",
+			Services: []string{
+				"Simple Storage Service (S3)",
+				"Elastic File System (EFS)",
+				"AWS Backup",
+				"AWS Transfer",
+			},
+		},
+		{
+			Name: "Database",
+			Services: []string{
+				"Relational Database Service (RDS)",
+				"DynamoDB",
+				"ElastiCache (Redis)",
+			},
+		},
+		{
+			Name: "Networking & Content Delivery",
+			Services: []string{
+				"Virtual Private Cloud (VPC)",
+				"Route 53",
+				"CloudFront",
+			},
+		},
+		{
+			Name: "Security, Identity & Compliance",
+			Services: []string{
+				"IAM Users",
+				"Secrets Manager",
+				"Certificate Manager (ACM)",
+				"KMS Keys",
+				"Web Application Firewall (WAFv2)",
+				"Security Hub",
+			},
+		},
+		{
+			Name: "Messaging & Integration",
+			Services: []string{
+				"Simple Notification Service (SNS)",
+				"Simple Queue Service (SQS)",
+				"Managed Streaming for Kakfa (MSK)",
+			},
+		},
+		{
+			Name: "Management & Governance",
+			Services: []string{
+				"CloudWatch",
+				"Billing & Costs",
+				"Data Migration Service (DMS)",
+			},
+		},
+	}
+}
+
 type Model struct {
 	profiles         []string
 	selectedProfile  string
@@ -92,6 +360,11 @@ type Model struct {
 	categories       []ServiceCategory
 	selectedCategory int
 	selectedService  int
+	// Search/Filter
+	searchInput      textinput.Model
+	searching        bool
+	filteredServices []string
+	selectedFiltered int
 	width            int
 	height           int
 	ready            bool
@@ -152,78 +425,23 @@ func NewModel() (Model, error) {
 		}
 	}()
 
+	ti := textinput.New()
+	ti.Placeholder = "Search services..."
+	ti.Prompt = "/ "
+	ti.CharLimit = 64
+	ti.Width = 30
+
 	return Model{
-		profiles:        profiles,
-		selectedProfile: selected,
-		profileSelector: ps,
-		styles:          styles,
-		focus:           focusContent,
-		view:            viewHome,
-		categories: []ServiceCategory{
-			{
-				Name: "Compute & Containers",
-				Services: []string{
-					"EC2 Resources",
-					"Lambda Functions",
-					"Elastic Container Service",
-					"ECR Repositories",
-				},
-			},
-			{
-				Name: "Storage",
-				Services: []string{
-					"S3 Buckets",
-					"EFS File Systems",
-					"AWS Backup",
-					"AWS Transfer",
-				},
-			},
-			{
-				Name: "Database",
-				Services: []string{
-					"RDS Databases",
-					"DynamoDB Tables",
-					"ElastiCache",
-				},
-			},
-			{
-				Name: "Networking & Content Delivery",
-				Services: []string{
-					"VPC Network",
-					"Route 53 Zones",
-					"CloudFront Distros",
-				},
-			},
-			{
-				Name: "Security, Identity & Compliance",
-				Services: []string{
-					"IAM Users",
-					"Secrets Manager",
-					"ACM Certificates",
-					"KMS Keys",
-					"WAFv2",
-					"Security Hub",
-				},
-			},
-			{
-				Name: "Messaging & Integration",
-				Services: []string{
-					"SNS Topics",
-					"SQS Queues",
-					"MSK",
-				},
-			},
-			{
-				Name: "Management & Governance",
-				Services: []string{
-					"CloudWatch Logs",
-					"Billing & Costs",
-					"Data Migration Service",
-				},
-			},
-		},
+		profiles:         profiles,
+		selectedProfile:  selected,
+		profileSelector:  ps,
+		styles:           styles,
+		focus:            focusContent,
+		view:             viewHome,
+		categories:       getServiceCategories(),
 		selectedCategory: 0,
 		selectedService:  0,
+		searchInput:      ti,
 		cache:            appCache,
 		cacheKeys:        cache.NewKeyBuilder(selected),
 	}, nil
@@ -418,6 +636,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Handle global keys that should work in all views (unless in input state)
 		if !m.isInputFocused() {
 			switch msg.String() {
+			case "/":
+				if m.view == viewHome {
+					m.searching = true
+					m.selectedFiltered = 0
+					m.searchInput.Focus()
+					m.updateFilter()
+					return m, textinput.Blink
+				}
 			case "p", "P":
 				m.profileSelector.active = true
 				m.profileSelector.list.FilterInput.Focus()
@@ -429,6 +655,37 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Even in input mode, ctrl+c should quit
 			if msg.String() == "ctrl+c" {
 				return m, tea.Quit
+			}
+
+			if m.searching {
+				switch msg.String() {
+				case "esc":
+					m.searching = false
+					m.searchInput.Blur()
+					m.searchInput.SetValue("")
+					return m, nil
+				case "enter":
+					if len(m.filteredServices) > 0 {
+						serviceName := m.filteredServices[m.selectedFiltered]
+						m.searching = false
+						m.searchInput.Blur()
+						m.searchInput.SetValue("")
+						return m.handleServiceSelection(serviceName)
+					}
+				case "up":
+					if m.selectedFiltered > 0 {
+						m.selectedFiltered--
+					}
+				case "down":
+					if m.selectedFiltered < len(m.filteredServices)-1 {
+						m.selectedFiltered++
+					}
+				}
+
+				var tiCmd tea.Cmd
+				m.searchInput, tiCmd = m.searchInput.Update(msg)
+				m.updateFilter()
+				return m, tiCmd
 			}
 		}
 
@@ -738,166 +995,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "enter":
 			selectedService := m.categories[m.selectedCategory].Services[m.selectedService]
-			if selectedService == "S3 Buckets" {
-				m.view = viewS3
-				m.s3Model = NewS3Model(m.selectedProfile, m.styles, m.cache)
-				m.s3Model.SetSize(m.width, m.height)
-				return m, m.s3Model.Init()
-			}
-			if selectedService == "IAM Users" {
-				m.view = viewIAM
-				m.iamModel = NewIAMModel(m.selectedProfile, m.styles, m.cache)
-				m.iamModel.SetSize(m.width, m.height)
-				return m, m.iamModel.Init()
-			}
-			if selectedService == "VPC Network" {
-				m.view = viewVPC
-				m.vpcModel = NewVPCModel(m.selectedProfile, m.styles, m.cache)
-				m.vpcModel.SetSize(m.width, m.height)
-				return m, m.vpcModel.Init()
-			}
-			if selectedService == "Lambda Functions" {
-				m.view = viewLambda
-				m.lambdaModel = NewLambdaModel(m.selectedProfile, m.styles, m.cache)
-				m.lambdaModel.SetSize(m.width, m.height)
-				return m, m.lambdaModel.Init()
-			}
-			if selectedService == "EC2 Resources" {
-				m.view = viewEC2
-				m.ec2Model = NewEC2Model(m.selectedProfile, m.styles, m.cache)
-				m.ec2Model.SetSize(m.width, m.height)
-				return m, m.ec2Model.Init()
-			}
-			if selectedService == "RDS Databases" {
-				m.view = viewRDS
-				m.rdsModel = NewRDSModel(m.selectedProfile, m.styles, m.cache)
-				m.rdsModel.SetSize(m.width, m.height)
-				return m, m.rdsModel.Init()
-			}
-			if selectedService == "CloudWatch Logs" {
-				m.view = viewCW
-				m.cwModel = NewCWModel(m.selectedProfile, m.styles, m.cache)
-				m.cwModel.SetSize(m.width, m.height)
-				return m, m.cwModel.Init()
-			}
-			if selectedService == "CloudFront Distros" {
-				m.view = viewCF
-				m.cfModel = NewCFModel(m.selectedProfile, m.styles, m.cache)
-				m.cfModel.SetSize(m.width, m.height)
-				return m, m.cfModel.Init()
-			}
-			if selectedService == "ElastiCache" {
-				m.view = viewElastiCache
-				m.elasticacheModel = NewElastiCacheModel(m.selectedProfile, m.styles, m.cache)
-				m.elasticacheModel.SetSize(m.width, m.height)
-				return m, m.elasticacheModel.Init()
-			}
-			if selectedService == "MSK" {
-				m.view = viewMSK
-				m.mskModel = NewMSKModel(m.selectedProfile, m.styles, m.cache)
-				m.mskModel.SetSize(m.width, m.height)
-				return m, m.mskModel.Init()
-			}
-			if selectedService == "SQS Queues" {
-				m.view = viewSQS
-				m.sqsModel = NewSQSModel(m.selectedProfile, m.styles, m.cache)
-				m.sqsModel.SetSize(m.width, m.height)
-				return m, m.sqsModel.Init()
-			}
-			if selectedService == "Secrets Manager" {
-				m.view = viewSM
-				m.smModel = NewSMModel(m.selectedProfile, m.styles, m.cache)
-				m.smModel.SetSize(m.width, m.height)
-				return m, m.smModel.Init()
-			}
-			if selectedService == "Route 53 Zones" {
-				m.view = viewRoute53
-				m.route53Model = NewRoute53Model(m.selectedProfile, m.styles, m.cache)
-				m.route53Model.SetSize(m.width, m.height)
-				return m, m.route53Model.Init()
-			}
-			if selectedService == "ACM Certificates" {
-				m.view = viewACM
-				m.acmModel = NewACMModel(m.selectedProfile, m.styles, m.cache)
-				m.acmModel.SetSize(m.width, m.height)
-				return m, m.acmModel.Init()
-			}
-			if selectedService == "SNS Topics" {
-				m.view = viewSNS
-				m.snsModel = NewSNSModel(m.selectedProfile, m.styles, m.cache)
-				m.snsModel.SetSize(m.width, m.height)
-				return m, m.snsModel.Init()
-			}
-			if selectedService == "KMS Keys" {
-				m.view = viewKMS
-				m.kmsModel = NewKMSModel(m.selectedProfile, m.styles, m.cache)
-				m.kmsModel.SetSize(m.width, m.height)
-				return m, m.kmsModel.Init()
-			}
-			if selectedService == "Data Migration Service" {
-				m.view = viewDMS
-				m.dmsModel = NewDMSModel(m.selectedProfile, m.styles, m.cache)
-				m.dmsModel.SetSize(m.width, m.height)
-				return m, m.dmsModel.Init()
-			}
-			if selectedService == "Elastic Container Service" {
-				m.view = viewECS
-				m.ecsModel = NewECSModel(m.selectedProfile, m.styles, m.cache)
-				m.ecsModel.SetSize(m.width, m.height)
-				return m, m.ecsModel.Init()
-			}
-			if selectedService == "Billing & Costs" {
-				m.view = viewBilling
-				m.billingModel = NewBillingModel(m.selectedProfile, m.styles, m.cache)
-				m.billingModel.SetSize(m.width, m.height)
-				return m, m.billingModel.Init()
-			}
-			if selectedService == "Security Hub" {
-				m.view = viewSecurityHub
-				m.securityhubModel = NewSecurityHubModel(m.selectedProfile, m.styles, m.cache)
-				m.securityhubModel.SetSize(m.width, m.height)
-				return m, m.securityhubModel.Init()
-			}
-			if selectedService == "WAFv2" {
-				m.view = viewWAF
-				region := "us-east-1"
-				if m.identity != nil {
-					region = m.identity.Region
-				}
-				m.wafModel = NewWAFModel(m.selectedProfile, m.styles, m.cache, region)
-				m.wafModel.SetSize(m.width, m.height)
-				return m, m.wafModel.Init()
-			}
-			if selectedService == "ECR Repositories" {
-				m.view = viewECR
-				m.ecrModel = NewECRModel(m.selectedProfile, m.styles, m.cache)
-				m.ecrModel.SetSize(m.width, m.height)
-				return m, m.ecrModel.Init()
-			}
-			if selectedService == "EFS File Systems" {
-				m.view = viewEFS
-				m.efsModel = NewEFSModel(m.selectedProfile, m.styles, m.cache)
-				m.efsModel.SetSize(m.width, m.height)
-				return m, m.efsModel.Init()
-			}
-			if selectedService == "AWS Backup" {
-				m.view = viewBackup
-				m.backupModel = NewBackupModel(m.selectedProfile, m.styles, m.cache)
-				m.backupModel.SetSize(m.width, m.height)
-				return m, m.backupModel.Init()
-			}
-			if selectedService == "DynamoDB Tables" {
-				m.view = viewDynamoDB
-				m.dynamodbModel = NewDynamoDBModel(m.selectedProfile, m.styles, m.cache)
-				m.dynamodbModel.SetSize(m.width, m.height)
-				return m, m.dynamodbModel.Init()
-			}
-			if selectedService == "AWS Transfer" {
-				m.view = viewTransfer
-				m.transferModel = NewTransferModel(m.selectedProfile, m.styles, m.cache)
-				m.transferModel.SetSize(m.width, m.height)
-				return m, m.transferModel.Init()
-			}
+			return m.handleServiceSelection(selectedService)
 		}
 
 	case ProfileSelectedMsg:
@@ -1477,7 +1575,8 @@ func (m Model) View() string {
 
 	// 2. FOOTER HINTS
 	footerHints := []string{
-		m.styles.StatusKey.Render("↑↓") + " " + m.styles.StatusMuted.Render("Navigate"),
+		m.styles.StatusKey.Render("↑↓←→") + " " + m.styles.StatusMuted.Render("Navigate"),
+		m.styles.StatusKey.Render("/") + " " + m.styles.StatusMuted.Render("Filter"),
 		m.styles.StatusKey.Render("Enter") + " " + m.styles.StatusMuted.Render("Select"),
 	}
 
@@ -1613,88 +1712,96 @@ func (m Model) View() string {
 				Render("Manage your AWS infrastructure without leaving your shell.")
 
 			// Services Menu
-			featureIcons := map[string]string{
-				"S3 Buckets":                "󱐖 ",
-				"IAM Users":                 " ",
-				"VPC Network":               "󰛳 ",
-				"Lambda Functions":          "󰘧 ",
-				"EC2 Resources":             " ",
-				"RDS Databases":             "󰆼 ",
-				"CloudWatch Logs":           "󱖉 ",
-				"CloudFront Distros":        "󰇄 ",
-				"ElastiCache":               "󰓡 ",
-				"MSK":                       "󰒔 ",
-				"SQS Queues":                "󰒔 ",
-				"Secrets Manager":           "󰌆 ",
-				"Route 53 Zones":            "󰇧 ",
-				"ACM Certificates":          "󰔕 ",
-				"SNS Topics":                "󰰓 ",
-				"KMS Keys":                  "󰌆 ",
-				"Data Migration Service":    "󰆼 ",
-				"Elastic Container Service": "󰙨 ",
-				"Billing & Costs":           "󰠶 ",
-				"Security Hub":              "󰒙 ",
-				"WAFv2":                     "󰖛 ",
-				"ECR Repositories":          "󰙨 ",
-				"EFS File Systems":          "󰙨 ",
-				"AWS Backup":                "󰁯 ",
-				"DynamoDB Tables":           "󰆼 ",
-				"AWS Transfer":              "󰛳 ",
-			}
-
-			renderCategory := func(catIdx int) string {
-				cat := m.categories[catIdx]
+			var menuBox string
+			if m.searching {
 				var sb strings.Builder
-				sb.WriteString(lipgloss.NewStyle().
-					Foreground(m.styles.Primary).
-					Bold(true).
-					Underline(true).
-					MarginBottom(1).
-					Render(strings.ToUpper(cat.Name)) + "\n")
+				sb.WriteString(m.searchInput.View() + "\n")
 
-				for i, service := range cat.Services {
-					icon := featureIcons[service]
-					if icon == "" {
-						icon = "• "
-					}
+				// Show max 10 items
+				displayItems := m.filteredServices
+				if len(displayItems) > 10 {
+					displayItems = displayItems[:10]
+				}
 
-					if catIdx == m.selectedCategory && i == m.selectedService && m.focus == focusContent {
-						sb.WriteString(m.styles.SelectedMenuItem.Render("➜ "+icon+service) + "\n")
-					} else {
-						sb.WriteString(m.styles.MenuItem.Render("  "+icon+service) + "\n")
+				if len(displayItems) == 0 {
+					sb.WriteString(m.styles.StatusMuted.Render("No services found.") + "\n")
+				} else {
+					for i, service := range displayItems {
+						icon := featureIcons[service]
+						if icon == "" {
+							icon = "• "
+						}
+						if i == m.selectedFiltered {
+							sb.WriteString(m.styles.SelectedMenuItem.Render("➜ "+icon+service) + "\n")
+						} else {
+							sb.WriteString(m.styles.MenuItem.Render("  "+icon+service) + "\n")
+						}
 					}
 				}
-				return sb.String()
+
+				// Fixed size box: width 60, height 14 (1 line input + 1 blank + 10 items + 2 border)
+				// Content height: 1 (input) + 1 (blank) + 10 (items) = 12 lines
+				menuBox = m.styles.MenuContainer.Copy().
+					Border(lipgloss.RoundedBorder()).
+					Padding(1, 2).
+					Width(60).
+					Height(14).
+					Render(sb.String())
+			} else {
+				renderCategory := func(catIdx int) string {
+					cat := m.categories[catIdx]
+					var sb strings.Builder
+					sb.WriteString(lipgloss.NewStyle().
+						Foreground(m.styles.Primary).
+						Bold(true).
+						Underline(true).
+						MarginBottom(1).
+						Render(strings.ToUpper(cat.Name)) + "\n")
+
+					for i, service := range cat.Services {
+						icon := featureIcons[service]
+						if icon == "" {
+							icon = "• "
+						}
+
+						if catIdx == m.selectedCategory && i == m.selectedService && m.focus == focusContent {
+							sb.WriteString(m.styles.SelectedMenuItem.Render("➜ "+icon+service) + "\n")
+						} else {
+							sb.WriteString(m.styles.MenuItem.Render("  "+icon+service) + "\n")
+						}
+					}
+					return sb.String()
+				}
+
+				col0 := lipgloss.JoinVertical(lipgloss.Left,
+					renderCategory(0),
+					"\n",
+					renderCategory(1),
+				)
+				col1 := lipgloss.JoinVertical(lipgloss.Left,
+					renderCategory(2),
+					"\n",
+					renderCategory(3),
+					"\n",
+					renderCategory(5),
+				)
+				col2 := lipgloss.JoinVertical(lipgloss.Left,
+					renderCategory(4),
+					"\n",
+					renderCategory(6),
+				)
+
+				columns := lipgloss.JoinHorizontal(lipgloss.Top,
+					lipgloss.NewStyle().Width(40).Render(col0),
+					lipgloss.NewStyle().Width(40).Render(col1),
+					lipgloss.NewStyle().Width(40).Render(col2),
+				)
+
+				menuBox = m.styles.MenuContainer.Copy().
+					Border(lipgloss.RoundedBorder()).
+					Padding(1, 2).
+					Render(columns)
 			}
-
-			col0 := lipgloss.JoinVertical(lipgloss.Left,
-				renderCategory(0),
-				"\n",
-				renderCategory(1),
-			)
-			col1 := lipgloss.JoinVertical(lipgloss.Left,
-				renderCategory(2),
-				"\n",
-				renderCategory(3),
-				"\n",
-				renderCategory(5),
-			)
-			col2 := lipgloss.JoinVertical(lipgloss.Left,
-				renderCategory(4),
-				"\n",
-				renderCategory(6),
-			)
-
-			columns := lipgloss.JoinHorizontal(lipgloss.Top,
-				lipgloss.NewStyle().Width(40).Render(col0),
-				lipgloss.NewStyle().Width(40).Render(col1),
-				lipgloss.NewStyle().Width(40).Render(col2),
-			)
-
-			menuBox := m.styles.MenuContainer.Copy().
-				Border(lipgloss.RoundedBorder()).
-				Padding(1, 2).
-				Render(columns)
 
 			homeView := lipgloss.JoinVertical(lipgloss.Center,
 				logoStyle.Render(logo),
@@ -1774,6 +1881,9 @@ func (m Model) renderMainContainer(content string, footer string) string {
 }
 
 func (m Model) isInputFocused() bool {
+	if m.searching {
+		return true
+	}
 	if m.view == viewS3 && m.s3Model.state == S3StateInput {
 		return true
 	}
@@ -1781,4 +1891,46 @@ func (m Model) isInputFocused() bool {
 		return true
 	}
 	return false
+}
+
+func (m *Model) handleServiceSelection(selectedService string) (tea.Model, tea.Cmd) {
+	handlers := getServiceHandlers()
+	if handler, ok := handlers[selectedService]; ok {
+		return handler(m)
+	}
+	return *m, nil
+}
+
+func (m *Model) updateFilter() {
+	query := m.searchInput.Value()
+	allServices := []string{}
+	for _, cat := range m.categories {
+		allServices = append(allServices, cat.Services...)
+	}
+
+	if query == "" {
+		m.filteredServices = allServices
+	} else {
+		matches := fuzzy.Find(query, allServices)
+		m.filteredServices = make([]string, len(matches))
+		for i, match := range matches {
+			m.filteredServices[i] = match.Str
+		}
+	}
+
+	// Limit to max 10 items
+	maxItems := 10
+	if len(m.filteredServices) > maxItems {
+		m.filteredServices = m.filteredServices[:maxItems]
+	}
+
+	if m.selectedFiltered >= len(m.filteredServices) {
+		m.selectedFiltered = len(m.filteredServices) - 1
+		if m.selectedFiltered < 0 {
+			m.selectedFiltered = 0
+		}
+	}
+	if m.selectedFiltered < 0 && len(m.filteredServices) > 0 {
+		m.selectedFiltered = 0
+	}
 }
