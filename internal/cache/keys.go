@@ -30,6 +30,8 @@ const (
 	TTLKMSResources        = 10 * time.Minute // KMS resources
 	TTLDMSResources        = 10 * time.Minute // DMS resources
 	TTLECSResources        = 10 * time.Minute // ECS resources
+	TTLBillingResources    = 30 * time.Minute // Billing resources (longer TTL as it's less frequent)
+	TTLSecurityHubResources = 10 * time.Minute // Security Hub resources
 )
 
 // KeyBuilder provides methods to build cache keys
@@ -165,4 +167,14 @@ func (kb *KeyBuilder) DMSResources(resourceType string) string {
 // ECSResources returns the cache key for ECS resources
 func (kb *KeyBuilder) ECSResources(resourceType string) string {
 	return fmt.Sprintf("%s:ecs:%s", kb.profile, resourceType)
+}
+
+// BillingResources returns the cache key for Billing resources
+func (kb *KeyBuilder) BillingResources() string {
+	return fmt.Sprintf("%s:billing", kb.profile)
+}
+
+// SecurityHubResources returns the cache key for Security Hub resources
+func (kb *KeyBuilder) SecurityHubResources() string {
+	return fmt.Sprintf("%s:securityhub", kb.profile)
 }

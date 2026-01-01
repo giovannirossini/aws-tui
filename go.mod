@@ -24,6 +24,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/acm v1.37.18 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.58.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.63.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/costexplorer v1.62.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.61.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.279.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.70.0 // indirect
@@ -40,6 +41,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/rds v1.113.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/route53 v1.62.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/securityhub v1.67.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/signin v1.0.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sns v1.39.10 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.20 // indirect

@@ -41,6 +41,8 @@ const (
 	viewKMS
 	viewDMS
 	viewECS
+	viewBilling
+	viewSecurityHub
 )
 
 type Model struct {
@@ -68,6 +70,8 @@ type Model struct {
 	kmsModel        KMSModel
 	dmsModel        DMSModel
 	ecsModel        ECSModel
+	billingModel    BillingModel
+	securityhubModel SecurityHubModel
 	features        []string
 	selectedFeature int
 	width           int
@@ -156,6 +160,8 @@ func NewModel() (Model, error) {
 			"KMS Keys",
 			"Data Migration Service",
 			"Elastic Container Service",
+			"Billing & Costs",
+			"Security Hub",
 		},
 		cache:     appCache,
 		cacheKeys: cache.NewKeyBuilder(selected),
@@ -298,6 +304,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.view == viewECS {
 			m.ecsModel.SetSize(m.width, m.height)
 			m.ecsModel, cmd = m.ecsModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewBilling {
+			m.billingModel.SetSize(m.width, m.height)
+			m.billingModel, cmd = m.billingModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewSecurityHub {
+			m.securityhubModel.SetSize(m.width, m.height)
+			m.securityhubModel, cmd = m.securityhubModel.Update(msg)
 			cmds = append(cmds, cmd)
 		}
 		m.ready = true
@@ -488,6 +504,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		}
 
+		if m.view == viewBilling {
+			if msg.String() == "esc" {
+				m.view = viewHome
+				return m, nil
+			}
+			m.billingModel, cmd = m.billingModel.Update(msg)
+			return m, cmd
+		}
+
+		if m.view == viewSecurityHub {
+			if msg.String() == "esc" {
+				m.view = viewHome
+				return m, nil
+			}
+			m.securityhubModel, cmd = m.securityhubModel.Update(msg)
+			return m, cmd
+		}
+
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
@@ -619,6 +653,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.ecsModel.SetSize(m.width, m.height)
 				return m, m.ecsModel.Init()
 			}
+			if m.features[m.selectedFeature] == "Billing & Costs" {
+				m.view = viewBilling
+				m.billingModel = NewBillingModel(m.selectedProfile, m.styles, m.cache)
+				m.billingModel.SetSize(m.width, m.height)
+				return m, m.billingModel.Init()
+			}
+			if m.features[m.selectedFeature] == "Security Hub" {
+				m.view = viewSecurityHub
+				m.securityhubModel = NewSecurityHubModel(m.selectedProfile, m.styles, m.cache)
+				m.securityhubModel.SetSize(m.width, m.height)
+				return m, m.securityhubModel.Init()
+			}
 		}
 
 	case ProfileSelectedMsg:
@@ -717,6 +763,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.ecsModel.SetSize(m.width, m.height)
 			return m, tea.Batch(m.ecsModel.Init(), m.fetchIdentity())
 		}
+		if m.view == viewBilling {
+			m.billingModel = NewBillingModel(m.selectedProfile, m.styles, m.cache)
+			m.billingModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.billingModel.Init(), m.fetchIdentity())
+		}
+		if m.view == viewSecurityHub {
+			m.securityhubModel = NewSecurityHubModel(m.selectedProfile, m.styles, m.cache)
+			m.securityhubModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.securityhubModel.Init(), m.fetchIdentity())
+		}
 		return m, m.fetchIdentity()
 
 	case S3BucketsMsg, S3ObjectsMsg, S3ErrorMsg, S3SuccessMsg:
@@ -789,6 +845,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case ECSClustersMsg, ECSServicesMsg, ECSTasksMsg, ECSEventsMsg, ECSTaskDefsMsg, ECSTaskDefFamiliesMsg, ECSTaskDefJSONMsg, ECSErrorMsg, ECSSuccessMsg:
 		m.ecsModel, cmd = m.ecsModel.Update(msg)
+		return m, cmd
+
+	case BillingMsg, BillingErrorMsg:
+		m.billingModel, cmd = m.billingModel.Update(msg)
+		return m, cmd
+
+	case SecurityHubMsg, SecurityHubErrorMsg:
+		m.securityhubModel, cmd = m.securityhubModel.Update(msg)
 		return m, cmd
 
 	case ECSLogGroupMsg:
@@ -1001,6 +1065,10 @@ func (m Model) View() string {
 			titleParts = append(titleParts, "Resources")
 		}
 		titleText = strings.Join(titleParts, " / ")
+	} else if m.view == viewBilling {
+		titleText = "Billing / Costs"
+	} else if m.view == viewSecurityHub {
+		titleText = "Security Hub / Findings"
 	}
 	currentViewTitle := m.styles.ViewTitle.Render(titleText)
 
@@ -1148,6 +1216,10 @@ func (m Model) View() string {
 			boxContent = m.dmsModel.View()
 		case viewECS:
 			boxContent = m.ecsModel.View()
+		case viewBilling:
+			boxContent = m.billingModel.View()
+		case viewSecurityHub:
+			boxContent = m.securityhubModel.View()
 		default:
 			// Home View
 			logo := `
@@ -1188,6 +1260,8 @@ func (m Model) View() string {
 				"KMS Keys":                  "󰌆 ",
 				"Data Migration Service":    "󰆼 ",
 				"Elastic Container Service": "󰙨 ",
+				"Billing & Costs":           "󰠶 ",
+				"Security Hub":               "󰒙 ",
 			}
 
 			for i, feature := range m.features {
