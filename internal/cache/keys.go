@@ -32,6 +32,7 @@ const (
 	TTLECSResources        = 10 * time.Minute // ECS resources
 	TTLBillingResources    = 30 * time.Minute // Billing resources (longer TTL as it's less frequent)
 	TTLSecurityHubResources = 10 * time.Minute // Security Hub resources
+	TTLWAFResources        = 10 * time.Minute // WAF resources
 )
 
 // KeyBuilder provides methods to build cache keys
@@ -177,4 +178,9 @@ func (kb *KeyBuilder) BillingResources() string {
 // SecurityHubResources returns the cache key for Security Hub resources
 func (kb *KeyBuilder) SecurityHubResources() string {
 	return fmt.Sprintf("%s:securityhub", kb.profile)
+}
+
+// WAFResources returns the cache key for WAF resources
+func (kb *KeyBuilder) WAFResources(resourceType string, scope string) string {
+	return fmt.Sprintf("%s:waf:%s:%s", kb.profile, resourceType, scope)
 }

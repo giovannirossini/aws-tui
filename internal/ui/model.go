@@ -43,6 +43,7 @@ const (
 	viewECS
 	viewBilling
 	viewSecurityHub
+	viewWAF
 )
 
 type Model struct {
@@ -72,6 +73,7 @@ type Model struct {
 	ecsModel        ECSModel
 	billingModel    BillingModel
 	securityhubModel SecurityHubModel
+	wafModel        WAFModel
 	features        []string
 	selectedFeature int
 	width           int
@@ -162,6 +164,7 @@ func NewModel() (Model, error) {
 			"Elastic Container Service",
 			"Billing & Costs",
 			"Security Hub",
+			"WAFv2",
 		},
 		cache:     appCache,
 		cacheKeys: cache.NewKeyBuilder(selected),
@@ -314,6 +317,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.view == viewSecurityHub {
 			m.securityhubModel.SetSize(m.width, m.height)
 			m.securityhubModel, cmd = m.securityhubModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewWAF {
+			m.wafModel.SetSize(m.width, m.height)
+			m.wafModel, cmd = m.wafModel.Update(msg)
 			cmds = append(cmds, cmd)
 		}
 		m.ready = true
@@ -522,6 +530,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		}
 
+		if m.view == viewWAF {
+			if msg.String() == "esc" && m.wafModel.state == WAFStateMenu {
+				m.view = viewHome
+				return m, nil
+			}
+			m.wafModel, cmd = m.wafModel.Update(msg)
+			return m, cmd
+		}
+
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
@@ -665,6 +682,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.securityhubModel.SetSize(m.width, m.height)
 				return m, m.securityhubModel.Init()
 			}
+			if m.features[m.selectedFeature] == "WAFv2" {
+				m.view = viewWAF
+				region := "us-east-1"
+				if m.identity != nil {
+					region = m.identity.Region
+				}
+				m.wafModel = NewWAFModel(m.selectedProfile, m.styles, m.cache, region)
+				m.wafModel.SetSize(m.width, m.height)
+				return m, m.wafModel.Init()
+			}
 		}
 
 	case ProfileSelectedMsg:
@@ -773,6 +800,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.securityhubModel.SetSize(m.width, m.height)
 			return m, tea.Batch(m.securityhubModel.Init(), m.fetchIdentity())
 		}
+		if m.view == viewWAF {
+			region := "us-east-1"
+			if m.identity != nil {
+				region = m.identity.Region
+			}
+			m.wafModel = NewWAFModel(m.selectedProfile, m.styles, m.cache, region)
+			m.wafModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.wafModel.Init(), m.fetchIdentity())
+		}
 		return m, m.fetchIdentity()
 
 	case S3BucketsMsg, S3ObjectsMsg, S3ErrorMsg, S3SuccessMsg:
@@ -854,6 +890,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case SecurityHubMsg, SecurityHubErrorMsg:
 		m.securityhubModel, cmd = m.securityhubModel.Update(msg)
 		return m, cmd
+
+	case WAFWebACLsMsg, WAFIPSetsMsg, WAFErrorMsg, WAFMenuMsg:
+		if m.view == viewWAF {
+			m.wafModel, cmd = m.wafModel.Update(msg)
+			return m, cmd
+		}
 
 	case ECSLogGroupMsg:
 		m.view = viewCW
@@ -1069,6 +1111,17 @@ func (m Model) View() string {
 		titleText = "Billing / Costs"
 	} else if m.view == viewSecurityHub {
 		titleText = "Security Hub / Findings"
+	} else if m.view == viewWAF {
+		titleParts := []string{"WAFv2"}
+		switch m.wafModel.state {
+		case WAFStateMenu:
+			titleParts = append(titleParts, "Resources")
+		case WAFStateWebACLs:
+			titleParts = append(titleParts, string(m.wafModel.scope), "Web ACLs")
+		case WAFStateIPSets:
+			titleParts = append(titleParts, string(m.wafModel.scope), "IP Sets")
+		}
+		titleText = strings.Join(titleParts, " / ")
 	}
 	currentViewTitle := m.styles.ViewTitle.Render(titleText)
 
@@ -1165,6 +1218,10 @@ func (m Model) View() string {
 		if m.ec2Model.state == EC2StateInstances {
 			footerHints = append(footerHints, m.styles.StatusKey.Render("o")+" "+m.styles.StatusMuted.Render("Options"))
 		}
+	} else if m.view == viewWAF {
+		if m.wafModel.state != WAFStateMenu {
+			footerHints = append(footerHints, m.styles.StatusKey.Render("backspace")+" "+m.styles.StatusMuted.Render("Back to Menu"))
+		}
 	}
 
 	footerHints = append(footerHints, m.styles.StatusKey.Render("q")+" "+m.styles.StatusMuted.Render("Quit"))
@@ -1220,6 +1277,8 @@ func (m Model) View() string {
 			boxContent = m.billingModel.View()
 		case viewSecurityHub:
 			boxContent = m.securityhubModel.View()
+		case viewWAF:
+			boxContent = m.wafModel.View()
 		default:
 			// Home View
 			logo := `
@@ -1262,6 +1321,7 @@ func (m Model) View() string {
 				"Elastic Container Service": "󰙨 ",
 				"Billing & Costs":           "󰠶 ",
 				"Security Hub":               "󰒙 ",
+				"WAFv2":                      "󰖛 ",
 			}
 
 			for i, feature := range m.features {
