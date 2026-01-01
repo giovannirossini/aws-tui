@@ -7,6 +7,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/giovannirossini/aws-tui/internal/aws"
 	"github.com/giovannirossini/aws-tui/internal/cache"
 )
@@ -19,6 +20,7 @@ const (
 	EC2StateSecurityGroups
 	EC2StateVolumes
 	EC2StateTargetGroups
+	EC2StateInstanceActions
 )
 
 type ec2Item struct {
@@ -36,6 +38,8 @@ func (i ec2Item) FilterValue() string { return i.title + " " + i.description + "
 type EC2Model struct {
 	client    *aws.EC2ResourcesClient
 	list      list.Model
+	actionList list.Model
+	delegate  ec2ItemDelegate
 	styles    Styles
 	state     EC2State
 	width     int
@@ -44,6 +48,7 @@ type EC2Model struct {
 	err       error
 	cache     *cache.Cache
 	cacheKeys *cache.KeyBuilder
+	selectedInstance string
 }
 
 type ec2ItemDelegate struct {
@@ -138,6 +143,7 @@ func NewEC2Model(profile string, styles Styles, appCache *cache.Cache) EC2Model 
 
 	return EC2Model{
 		list:      l,
+		delegate:  d,
 		styles:    styles,
 		state:     EC2StateMenu,
 		profile:   profile,
@@ -253,6 +259,28 @@ func (m EC2Model) fetchTargetGroups() tea.Cmd {
 	}
 }
 
+func (m *EC2Model) loadActionMenu() {
+	d := list.NewDefaultDelegate()
+	d.Styles.SelectedTitle = m.styles.ListSelectedTitle
+	d.Styles.SelectedDesc = m.styles.ListSelectedDesc
+
+	m.actionList = list.New([]list.Item{
+		ec2Item{title: "SSM", description: "Connect to instance via SSM Session Manager"},
+	}, d, 30, 10)
+	m.actionList.Title = "Instance Actions"
+	m.actionList.SetShowStatusBar(false)
+	m.actionList.SetShowHelp(false)
+	m.actionList.SetShowTitle(true)
+}
+
+func (m EC2Model) openSSM() tea.Cmd {
+	return func() tea.Msg {
+		return SSMStartedMsg(m.selectedInstance)
+	}
+}
+
+type SSMStartedMsg string
+
 func (m EC2Model) Update(msg tea.Msg) (EC2Model, tea.Cmd) {
 	var cmd tea.Cmd
 
@@ -283,6 +311,7 @@ func (m EC2Model) Update(msg tea.Msg) (EC2Model, tea.Cmd) {
 		m.list.ResetSelected()
 		m.state = EC2StateInstances
 		m.updateDelegate()
+		return m, nil
 
 	case SecurityGroupsMsg:
 		items := make([]list.Item, len(msg))
@@ -341,7 +370,32 @@ func (m EC2Model) Update(msg tea.Msg) (EC2Model, tea.Cmd) {
 			return m, nil
 		}
 
+		if m.state == EC2StateInstanceActions {
+			switch msg.String() {
+			case "esc", "q":
+				m.state = EC2StateInstances
+				return m, nil
+			case "enter":
+				if item, ok := m.actionList.SelectedItem().(ec2Item); ok {
+					if item.title == "SSM" {
+						return m, m.openSSM()
+					}
+				}
+			}
+			m.actionList, cmd = m.actionList.Update(msg)
+			return m, cmd
+		}
+
 		switch msg.String() {
+		case "o":
+			if m.state == EC2StateInstances {
+				if item, ok := m.list.SelectedItem().(ec2Item); ok {
+					m.selectedInstance = item.id
+					m.state = EC2StateInstanceActions
+					m.loadActionMenu()
+					return m, nil
+				}
+			}
 		case "r":
 			switch m.state {
 			case EC2StateInstances:
@@ -380,6 +434,9 @@ func (m EC2Model) Update(msg tea.Msg) (EC2Model, tea.Cmd) {
 	}
 
 	m.list, cmd = m.list.Update(msg)
+	// Update delegate state
+	m.delegate.state = m.state
+	m.list.SetDelegate(m.delegate)
 	return m, cmd
 }
 
@@ -397,6 +454,14 @@ func (m *EC2Model) updateDelegate() {
 func (m EC2Model) View() string {
 	if m.err != nil {
 		return m.styles.Error.Render(fmt.Sprintf("✘ Error: %v\n\nPress any key to continue...", m.err))
+	}
+
+	if m.state == EC2StateInstanceActions {
+		popup := m.styles.Popup.Width(38).Render(
+			m.actionList.View(),
+		)
+		w, h := GetMainContainerSize(m.width, m.height)
+		return lipgloss.Place(w, h-AppInternalFooterHeight-2, lipgloss.Center, lipgloss.Center, popup)
 	}
 
 	if m.state != EC2StateMenu {

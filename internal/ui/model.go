@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -799,6 +800,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.cwModel.originView = viewECS
 		return m, m.cwModel.fetchLogStreams(string(msg))
 
+	case SSMStartedMsg:
+		c := exec.Command("aws", "ssm", "start-session", "--target", string(msg), "--profile", m.selectedProfile)
+		return m, tea.ExecProcess(c, func(err error) tea.Msg {
+			if err != nil {
+				return EC2ErrorMsg(err)
+			}
+			return nil
+		})
+
 	case IdentityMsg:
 		m.identity = msg
 		return m, nil
@@ -1081,6 +1091,10 @@ func (m Model) View() string {
 		}
 	} else if m.view == viewECS {
 		if m.ecsModel.state == ECSStateTasks || m.ecsModel.state == ECSStateServices {
+			footerHints = append(footerHints, m.styles.StatusKey.Render("o")+" "+m.styles.StatusMuted.Render("Options"))
+		}
+	} else if m.view == viewEC2 {
+		if m.ec2Model.state == EC2StateInstances {
 			footerHints = append(footerHints, m.styles.StatusKey.Render("o")+" "+m.styles.StatusMuted.Render("Options"))
 		}
 	}
