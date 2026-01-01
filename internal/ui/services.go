@@ -21,7 +21,7 @@ var featureIcons = map[string]string{
 	"Route 53":                           "󰇧 ",
 	"Certificate Manager (ACM)":          "󰔕 ",
 	"Simple Notification Service (SNS)":  "󰰓 ",
-	"KMS Keys":                           "󰌆 ",
+	"Key Management Service (KMS)":       "󰌆 ",
 	"Data Migration Service (DMS)":       "󰆼 ",
 	"Elastic Container Service (ECS)":    "󰙨 ",
 	"Billing & Costs":                    "󰠶 ",
