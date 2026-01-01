@@ -647,29 +647,28 @@ func (m ECSModel) Update(msg tea.Msg) (ECSModel, tea.Cmd) {
 			switch msg.String() {
 			case "esc", "backspace", "q":
 				m.state = ECSStateTaskDefRevisions
-				return m, nil
+			default:
+				m.viewport, cmd = m.viewport.Update(msg)
+				return m, cmd
 			}
-			m.viewport, cmd = m.viewport.Update(msg)
-			return m, cmd
 		}
 
 		if m.state == ECSStateTaskActions {
 			switch msg.String() {
 			case "esc", "q":
 				m.state = ECSStateTasks
-				return m, nil
 			case "enter":
 				return m, m.restartTask()
+			default:
+				m.actionList, cmd = m.actionList.Update(msg)
+				return m, cmd
 			}
-			m.actionList, cmd = m.actionList.Update(msg)
-			return m, cmd
 		}
 
 		if m.state == ECSStateServiceActions {
 			switch msg.String() {
 			case "esc", "q":
 				m.state = ECSStateServices
-				return m, nil
 			case "enter":
 				if item, ok := m.serviceActionList.SelectedItem().(ecsItem); ok {
 					if item.id == "stop-service" {
@@ -678,9 +677,10 @@ func (m ECSModel) Update(msg tea.Msg) (ECSModel, tea.Cmd) {
 						return m, m.restartServiceAction()
 					}
 				}
+			default:
+				m.serviceActionList, cmd = m.serviceActionList.Update(msg)
+				return m, cmd
 			}
-			m.serviceActionList, cmd = m.serviceActionList.Update(msg)
-			return m, cmd
 		}
 
 		switch msg.String() {
