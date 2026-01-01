@@ -35,6 +35,7 @@ const (
 	viewSQS
 	viewSM
 	viewRoute53
+	viewACM
 )
 
 type Model struct {
@@ -57,6 +58,7 @@ type Model struct {
 	sqsModel        SQSModel
 	smModel         SMModel
 	route53Model    Route53Model
+	acmModel        ACMModel
 	features        []string
 	selectedFeature int
 	width           int
@@ -140,7 +142,7 @@ func NewModel() (Model, error) {
 			"SQS Queues",
 			"Secrets Manager",
 			"Route 53 Zones",
-			"ACM Certificates (Todo)",
+			"ACM Certificates",
 			"SNS Topics (Todo)",
 			"KMS Keys (Todo)",
 		},
@@ -260,6 +262,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.view == viewRoute53 {
 			m.route53Model.SetSize(m.width, m.height)
 			m.route53Model, cmd = m.route53Model.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewACM {
+			m.acmModel.SetSize(m.width, m.height)
+			m.acmModel, cmd = m.acmModel.Update(msg)
 			cmds = append(cmds, cmd)
 		}
 		m.ready = true
@@ -401,6 +408,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		}
 
+		if m.view == viewACM {
+			if msg.String() == "esc" {
+				m.view = viewHome
+				return m, nil
+			}
+			m.acmModel, cmd = m.acmModel.Update(msg)
+			return m, cmd
+		}
+
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
@@ -502,6 +518,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.route53Model.SetSize(m.width, m.height)
 				return m, m.route53Model.Init()
 			}
+			if m.features[m.selectedFeature] == "ACM Certificates" {
+				m.view = viewACM
+				m.acmModel = NewACMModel(m.selectedProfile, m.styles, m.cache)
+				m.acmModel.SetSize(m.width, m.height)
+				return m, m.acmModel.Init()
+			}
 		}
 
 	case ProfileSelectedMsg:
@@ -575,6 +597,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.route53Model.SetSize(m.width, m.height)
 			return m, tea.Batch(m.route53Model.Init(), m.fetchIdentity())
 		}
+		if m.view == viewACM {
+			m.acmModel = NewACMModel(m.selectedProfile, m.styles, m.cache)
+			m.acmModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.acmModel.Init(), m.fetchIdentity())
+		}
 		return m, m.fetchIdentity()
 
 	case S3BucketsMsg, S3ObjectsMsg, S3ErrorMsg, S3SuccessMsg:
@@ -627,6 +654,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case HostedZonesMsg, RecordSetsMsg, Route53ErrorMsg:
 		m.route53Model, cmd = m.route53Model.Update(msg)
+		return m, cmd
+
+	case CertificatesMsg, ACMErrorMsg:
+		m.acmModel, cmd = m.acmModel.Update(msg)
 		return m, cmd
 
 	case IdentityMsg:
@@ -779,6 +810,8 @@ func (m Model) View() string {
 			titleParts = append(titleParts, "Zones", m.route53Model.selectedZoneName, "Records")
 		}
 		titleText = strings.Join(titleParts, " / ")
+	} else if m.view == viewACM {
+		titleText = "ACM / Certificates"
 	}
 	currentViewTitle := m.styles.ViewTitle.Render(titleText)
 
@@ -904,6 +937,8 @@ func (m Model) View() string {
 			boxContent = m.smModel.View()
 		case viewRoute53:
 			boxContent = m.route53Model.View()
+		case viewACM:
+			boxContent = m.acmModel.View()
 		default:
 			// Home View
 			logo := `
@@ -939,7 +974,7 @@ func (m Model) View() string {
 				"SQS Queues":                "󰒔 ",
 				"Secrets Manager":           "󰌆 ",
 				"Route 53 Zones":            "󰇧 ",
-				"ACM Certificates (Todo)":   "󰔕 ",
+				"ACM Certificates":          "󰔕 ",
 				"SNS Topics (Todo)":         "󰰓 ",
 				"KMS Keys (Todo)":           "󰌆 ",
 			}
