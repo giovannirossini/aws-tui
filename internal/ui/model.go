@@ -51,47 +51,53 @@ const (
 	viewTransfer
 )
 
+type ServiceCategory struct {
+	Name     string
+	Services []string
+}
+
 type Model struct {
-	profiles        []string
-	selectedProfile string
-	profileSelector ProfileSelector
-	styles          Styles
-	focus           focus
-	view            viewState
-	s3Model         S3Model
-	iamModel        IAMModel
-	vpcModel        VPCModel
-	lambdaModel     LambdaModel
-	ec2Model        EC2Model
-	rdsModel        RDSModel
-	cwModel         CWModel
-	cfModel         CFModel
+	profiles         []string
+	selectedProfile  string
+	profileSelector  ProfileSelector
+	styles           Styles
+	focus            focus
+	view             viewState
+	s3Model          S3Model
+	iamModel         IAMModel
+	vpcModel         VPCModel
+	lambdaModel      LambdaModel
+	ec2Model         EC2Model
+	rdsModel         RDSModel
+	cwModel          CWModel
+	cfModel          CFModel
 	elasticacheModel ElastiCacheModel
-	mskModel        MSKModel
-	sqsModel        SQSModel
-	smModel         SMModel
-	route53Model    Route53Model
-	acmModel        ACMModel
-	snsModel        SNSModel
-	kmsModel        KMSModel
-	dmsModel        DMSModel
-	ecsModel        ECSModel
-	billingModel    BillingModel
+	mskModel         MSKModel
+	sqsModel         SQSModel
+	smModel          SMModel
+	route53Model     Route53Model
+	acmModel         ACMModel
+	snsModel         SNSModel
+	kmsModel         KMSModel
+	dmsModel         DMSModel
+	ecsModel         ECSModel
+	billingModel     BillingModel
 	securityhubModel SecurityHubModel
-	wafModel        WAFModel
-	ecrModel        ECRModel
-	efsModel        EFSModel
-	backupModel     BackupModel
-	dynamodbModel   DynamoDBModel
-	transferModel   TransferModel
-	features        []string
-	selectedFeature int
-	width           int
-	height          int
-	ready           bool
-	identity        *aws.IdentityInfo
-	cache           *cache.Cache
-	cacheKeys       *cache.KeyBuilder
+	wafModel         WAFModel
+	ecrModel         ECRModel
+	efsModel         EFSModel
+	backupModel      BackupModel
+	dynamodbModel    DynamoDBModel
+	transferModel    TransferModel
+	categories       []ServiceCategory
+	selectedCategory int
+	selectedService  int
+	width            int
+	height           int
+	ready            bool
+	identity         *aws.IdentityInfo
+	cache            *cache.Cache
+	cacheKeys        *cache.KeyBuilder
 }
 
 type IdentityMsg *aws.IdentityInfo
@@ -153,36 +159,73 @@ func NewModel() (Model, error) {
 		styles:          styles,
 		focus:           focusContent,
 		view:            viewHome,
-		features: []string{
-			"S3 Buckets",
-			"IAM Users",
-			"VPC Network",
-			"Lambda Functions",
-			"EC2 Resources",
-			"RDS Databases",
-			"CloudWatch Logs",
-			"CloudFront Distros",
-			"ElastiCache",
-			"MSK",
-			"SQS Queues",
-			"Secrets Manager",
-			"Route 53 Zones",
-			"ACM Certificates",
-			"SNS Topics",
-			"KMS Keys",
-			"Data Migration Service",
-			"Elastic Container Service",
-			"ECR Repositories",
-			"EFS File Systems",
-			"AWS Backup",
-			"DynamoDB Tables",
-			"AWS Transfer",
-			"Billing & Costs",
-			"Security Hub",
-			"WAFv2",
+		categories: []ServiceCategory{
+			{
+				Name: "Compute & Containers",
+				Services: []string{
+					"EC2 Resources",
+					"Lambda Functions",
+					"Elastic Container Service",
+					"ECR Repositories",
+				},
+			},
+			{
+				Name: "Storage",
+				Services: []string{
+					"S3 Buckets",
+					"EFS File Systems",
+					"AWS Backup",
+					"AWS Transfer",
+				},
+			},
+			{
+				Name: "Database",
+				Services: []string{
+					"RDS Databases",
+					"DynamoDB Tables",
+					"ElastiCache",
+				},
+			},
+			{
+				Name: "Networking & Content Delivery",
+				Services: []string{
+					"VPC Network",
+					"Route 53 Zones",
+					"CloudFront Distros",
+				},
+			},
+			{
+				Name: "Security, Identity & Compliance",
+				Services: []string{
+					"IAM Users",
+					"Secrets Manager",
+					"ACM Certificates",
+					"KMS Keys",
+					"WAFv2",
+					"Security Hub",
+				},
+			},
+			{
+				Name: "Messaging & Integration",
+				Services: []string{
+					"SNS Topics",
+					"SQS Queues",
+					"MSK",
+				},
+			},
+			{
+				Name: "Management & Governance",
+				Services: []string{
+					"CloudWatch Logs",
+					"Billing & Costs",
+					"Data Migration Service",
+				},
+			},
 		},
-		cache:     appCache,
-		cacheKeys: cache.NewKeyBuilder(selected),
+		selectedCategory: 0,
+		selectedService:  0,
+		cache:            appCache,
+		cacheKeys:        cache.NewKeyBuilder(selected),
 	}, nil
 }
 
@@ -650,135 +693,172 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "tab":
 			// No-op, header is non-interactive
 		case "up":
-			if m.selectedFeature > 0 {
-				m.selectedFeature--
+			if m.selectedService > 0 {
+				m.selectedService--
+			} else {
+				// Move to previous category in the same column
+				col := m.getCategoryColumn(m.selectedCategory)
+				categoriesInCol := m.getCategoriesInColumn(col)
+				for i, catIdx := range categoriesInCol {
+					if catIdx == m.selectedCategory {
+						prevIdx := (i - 1 + len(categoriesInCol)) % len(categoriesInCol)
+						m.selectedCategory = categoriesInCol[prevIdx]
+						m.selectedService = len(m.categories[m.selectedCategory].Services) - 1
+						break
+					}
+				}
 			}
 		case "down":
-			if m.selectedFeature < len(m.features)-1 {
-				m.selectedFeature++
+			if m.selectedService < len(m.categories[m.selectedCategory].Services)-1 {
+				m.selectedService++
+			} else {
+				// Move to next category in the same column
+				col := m.getCategoryColumn(m.selectedCategory)
+				categoriesInCol := m.getCategoriesInColumn(col)
+				for i, catIdx := range categoriesInCol {
+					if catIdx == m.selectedCategory {
+						nextIdx := (i + 1) % len(categoriesInCol)
+						m.selectedCategory = categoriesInCol[nextIdx]
+						m.selectedService = 0
+						break
+					}
+				}
+			}
+		case "left":
+			col := m.getCategoryColumn(m.selectedCategory)
+			if col > 0 {
+				newCol := col - 1
+				m.moveToColumn(newCol)
+			}
+		case "right":
+			col := m.getCategoryColumn(m.selectedCategory)
+			if col < 2 {
+				newCol := col + 1
+				m.moveToColumn(newCol)
 			}
 		case "enter":
-			if m.features[m.selectedFeature] == "S3 Buckets" {
+			selectedService := m.categories[m.selectedCategory].Services[m.selectedService]
+			if selectedService == "S3 Buckets" {
 				m.view = viewS3
 				m.s3Model = NewS3Model(m.selectedProfile, m.styles, m.cache)
 				m.s3Model.SetSize(m.width, m.height)
 				return m, m.s3Model.Init()
 			}
-			if m.features[m.selectedFeature] == "IAM Users" {
+			if selectedService == "IAM Users" {
 				m.view = viewIAM
 				m.iamModel = NewIAMModel(m.selectedProfile, m.styles, m.cache)
 				m.iamModel.SetSize(m.width, m.height)
 				return m, m.iamModel.Init()
 			}
-			if m.features[m.selectedFeature] == "VPC Network" {
+			if selectedService == "VPC Network" {
 				m.view = viewVPC
 				m.vpcModel = NewVPCModel(m.selectedProfile, m.styles, m.cache)
 				m.vpcModel.SetSize(m.width, m.height)
 				return m, m.vpcModel.Init()
 			}
-			if m.features[m.selectedFeature] == "Lambda Functions" {
+			if selectedService == "Lambda Functions" {
 				m.view = viewLambda
 				m.lambdaModel = NewLambdaModel(m.selectedProfile, m.styles, m.cache)
 				m.lambdaModel.SetSize(m.width, m.height)
 				return m, m.lambdaModel.Init()
 			}
-			if m.features[m.selectedFeature] == "EC2 Resources" {
+			if selectedService == "EC2 Resources" {
 				m.view = viewEC2
 				m.ec2Model = NewEC2Model(m.selectedProfile, m.styles, m.cache)
 				m.ec2Model.SetSize(m.width, m.height)
 				return m, m.ec2Model.Init()
 			}
-			if m.features[m.selectedFeature] == "RDS Databases" {
+			if selectedService == "RDS Databases" {
 				m.view = viewRDS
 				m.rdsModel = NewRDSModel(m.selectedProfile, m.styles, m.cache)
 				m.rdsModel.SetSize(m.width, m.height)
 				return m, m.rdsModel.Init()
 			}
-			if m.features[m.selectedFeature] == "CloudWatch Logs" {
+			if selectedService == "CloudWatch Logs" {
 				m.view = viewCW
 				m.cwModel = NewCWModel(m.selectedProfile, m.styles, m.cache)
 				m.cwModel.SetSize(m.width, m.height)
 				return m, m.cwModel.Init()
 			}
-			if m.features[m.selectedFeature] == "CloudFront Distros" {
+			if selectedService == "CloudFront Distros" {
 				m.view = viewCF
 				m.cfModel = NewCFModel(m.selectedProfile, m.styles, m.cache)
 				m.cfModel.SetSize(m.width, m.height)
 				return m, m.cfModel.Init()
 			}
-			if m.features[m.selectedFeature] == "ElastiCache" {
+			if selectedService == "ElastiCache" {
 				m.view = viewElastiCache
 				m.elasticacheModel = NewElastiCacheModel(m.selectedProfile, m.styles, m.cache)
 				m.elasticacheModel.SetSize(m.width, m.height)
 				return m, m.elasticacheModel.Init()
 			}
-			if m.features[m.selectedFeature] == "MSK" {
+			if selectedService == "MSK" {
 				m.view = viewMSK
 				m.mskModel = NewMSKModel(m.selectedProfile, m.styles, m.cache)
 				m.mskModel.SetSize(m.width, m.height)
 				return m, m.mskModel.Init()
 			}
-			if m.features[m.selectedFeature] == "SQS Queues" {
+			if selectedService == "SQS Queues" {
 				m.view = viewSQS
 				m.sqsModel = NewSQSModel(m.selectedProfile, m.styles, m.cache)
 				m.sqsModel.SetSize(m.width, m.height)
 				return m, m.sqsModel.Init()
 			}
-			if m.features[m.selectedFeature] == "Secrets Manager" {
+			if selectedService == "Secrets Manager" {
 				m.view = viewSM
 				m.smModel = NewSMModel(m.selectedProfile, m.styles, m.cache)
 				m.smModel.SetSize(m.width, m.height)
 				return m, m.smModel.Init()
 			}
-			if m.features[m.selectedFeature] == "Route 53 Zones" {
+			if selectedService == "Route 53 Zones" {
 				m.view = viewRoute53
 				m.route53Model = NewRoute53Model(m.selectedProfile, m.styles, m.cache)
 				m.route53Model.SetSize(m.width, m.height)
 				return m, m.route53Model.Init()
 			}
-			if m.features[m.selectedFeature] == "ACM Certificates" {
+			if selectedService == "ACM Certificates" {
 				m.view = viewACM
 				m.acmModel = NewACMModel(m.selectedProfile, m.styles, m.cache)
 				m.acmModel.SetSize(m.width, m.height)
 				return m, m.acmModel.Init()
 			}
-			if m.features[m.selectedFeature] == "SNS Topics" {
+			if selectedService == "SNS Topics" {
 				m.view = viewSNS
 				m.snsModel = NewSNSModel(m.selectedProfile, m.styles, m.cache)
 				m.snsModel.SetSize(m.width, m.height)
 				return m, m.snsModel.Init()
 			}
-			if m.features[m.selectedFeature] == "KMS Keys" {
+			if selectedService == "KMS Keys" {
 				m.view = viewKMS
 				m.kmsModel = NewKMSModel(m.selectedProfile, m.styles, m.cache)
 				m.kmsModel.SetSize(m.width, m.height)
 				return m, m.kmsModel.Init()
 			}
-			if m.features[m.selectedFeature] == "Data Migration Service" {
+			if selectedService == "Data Migration Service" {
 				m.view = viewDMS
 				m.dmsModel = NewDMSModel(m.selectedProfile, m.styles, m.cache)
 				m.dmsModel.SetSize(m.width, m.height)
 				return m, m.dmsModel.Init()
 			}
-			if m.features[m.selectedFeature] == "Elastic Container Service" {
+			if selectedService == "Elastic Container Service" {
 				m.view = viewECS
 				m.ecsModel = NewECSModel(m.selectedProfile, m.styles, m.cache)
 				m.ecsModel.SetSize(m.width, m.height)
 				return m, m.ecsModel.Init()
 			}
-			if m.features[m.selectedFeature] == "Billing & Costs" {
+			if selectedService == "Billing & Costs" {
 				m.view = viewBilling
 				m.billingModel = NewBillingModel(m.selectedProfile, m.styles, m.cache)
 				m.billingModel.SetSize(m.width, m.height)
 				return m, m.billingModel.Init()
 			}
-			if m.features[m.selectedFeature] == "Security Hub" {
+			if selectedService == "Security Hub" {
 				m.view = viewSecurityHub
 				m.securityhubModel = NewSecurityHubModel(m.selectedProfile, m.styles, m.cache)
 				m.securityhubModel.SetSize(m.width, m.height)
 				return m, m.securityhubModel.Init()
 			}
-			if m.features[m.selectedFeature] == "WAFv2" {
+			if selectedService == "WAFv2" {
 				m.view = viewWAF
 				region := "us-east-1"
 				if m.identity != nil {
@@ -788,31 +868,31 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.wafModel.SetSize(m.width, m.height)
 				return m, m.wafModel.Init()
 			}
-			if m.features[m.selectedFeature] == "ECR Repositories" {
+			if selectedService == "ECR Repositories" {
 				m.view = viewECR
 				m.ecrModel = NewECRModel(m.selectedProfile, m.styles, m.cache)
 				m.ecrModel.SetSize(m.width, m.height)
 				return m, m.ecrModel.Init()
 			}
-			if m.features[m.selectedFeature] == "EFS File Systems" {
+			if selectedService == "EFS File Systems" {
 				m.view = viewEFS
 				m.efsModel = NewEFSModel(m.selectedProfile, m.styles, m.cache)
 				m.efsModel.SetSize(m.width, m.height)
 				return m, m.efsModel.Init()
 			}
-			if m.features[m.selectedFeature] == "AWS Backup" {
+			if selectedService == "AWS Backup" {
 				m.view = viewBackup
 				m.backupModel = NewBackupModel(m.selectedProfile, m.styles, m.cache)
 				m.backupModel.SetSize(m.width, m.height)
 				return m, m.backupModel.Init()
 			}
-			if m.features[m.selectedFeature] == "DynamoDB Tables" {
+			if selectedService == "DynamoDB Tables" {
 				m.view = viewDynamoDB
 				m.dynamodbModel = NewDynamoDBModel(m.selectedProfile, m.styles, m.cache)
 				m.dynamodbModel.SetSize(m.width, m.height)
 				return m, m.dynamodbModel.Init()
 			}
-			if m.features[m.selectedFeature] == "AWS Transfer" {
+			if selectedService == "AWS Transfer" {
 				m.view = viewTransfer
 				m.transferModel = NewTransferModel(m.selectedProfile, m.styles, m.cache)
 				m.transferModel.SetSize(m.width, m.height)
@@ -1529,19 +1609,17 @@ func (m Model) View() string {
 				Foreground(m.styles.Muted).
 				Italic(true).
 				MarginBottom(1).
+				MarginTop(1).
 				Render("Manage your AWS infrastructure without leaving your shell.")
 
 			// Services Menu
-			var menuContent strings.Builder
-			menuContent.WriteString(lipgloss.NewStyle().Foreground(m.styles.Primary).Bold(true).Render(" AVAILABLE SERVICES ") + "\n\n")
-
 			featureIcons := map[string]string{
 				"S3 Buckets":                "󱐖 ",
 				"IAM Users":                 " ",
 				"VPC Network":               "󰛳 ",
 				"Lambda Functions":          "󰘧 ",
 				"EC2 Resources":             " ",
-				"RDS Databases":            "󰆼 ",
+				"RDS Databases":             "󰆼 ",
 				"CloudWatch Logs":           "󱖉 ",
 				"CloudFront Distros":        "󰇄 ",
 				"ElastiCache":               "󰓡 ",
@@ -1555,8 +1633,8 @@ func (m Model) View() string {
 				"Data Migration Service":    "󰆼 ",
 				"Elastic Container Service": "󰙨 ",
 				"Billing & Costs":           "󰠶 ",
-				"Security Hub":               "󰒙 ",
-				"WAFv2":                      "󰖛 ",
+				"Security Hub":              "󰒙 ",
+				"WAFv2":                     "󰖛 ",
 				"ECR Repositories":          "󰙨 ",
 				"EFS File Systems":          "󰙨 ",
 				"AWS Backup":                "󰁯 ",
@@ -1564,24 +1642,59 @@ func (m Model) View() string {
 				"AWS Transfer":              "󰛳 ",
 			}
 
-			for i, feature := range m.features {
-				icon := featureIcons[feature]
-				if icon == "" {
-					icon = "• "
-				}
+			renderCategory := func(catIdx int) string {
+				cat := m.categories[catIdx]
+				var sb strings.Builder
+				sb.WriteString(lipgloss.NewStyle().
+					Foreground(m.styles.Primary).
+					Bold(true).
+					Underline(true).
+					MarginBottom(1).
+					Render(strings.ToUpper(cat.Name)) + "\n")
 
-				if i == m.selectedFeature && m.focus == focusContent {
-					menuContent.WriteString(m.styles.SelectedMenuItem.Render("➜ "+icon+feature) + "\n")
-				} else {
-					menuContent.WriteString(m.styles.MenuItem.Render("  "+icon+feature) + "\n")
+				for i, service := range cat.Services {
+					icon := featureIcons[service]
+					if icon == "" {
+						icon = "• "
+					}
+
+					if catIdx == m.selectedCategory && i == m.selectedService && m.focus == focusContent {
+						sb.WriteString(m.styles.SelectedMenuItem.Render("➜ "+icon+service) + "\n")
+					} else {
+						sb.WriteString(m.styles.MenuItem.Render("  "+icon+service) + "\n")
+					}
 				}
+				return sb.String()
 			}
+
+			col0 := lipgloss.JoinVertical(lipgloss.Left,
+				renderCategory(0),
+				"\n",
+				renderCategory(1),
+			)
+			col1 := lipgloss.JoinVertical(lipgloss.Left,
+				renderCategory(2),
+				"\n",
+				renderCategory(3),
+				"\n",
+				renderCategory(5),
+			)
+			col2 := lipgloss.JoinVertical(lipgloss.Left,
+				renderCategory(4),
+				"\n",
+				renderCategory(6),
+			)
+
+			columns := lipgloss.JoinHorizontal(lipgloss.Top,
+				lipgloss.NewStyle().Width(40).Render(col0),
+				lipgloss.NewStyle().Width(40).Render(col1),
+				lipgloss.NewStyle().Width(40).Render(col2),
+			)
 
 			menuBox := m.styles.MenuContainer.Copy().
 				Border(lipgloss.RoundedBorder()).
 				Padding(1, 2).
-				Width(60).
-				Render(menuContent.String())
+				Render(columns)
 
 			homeView := lipgloss.JoinVertical(lipgloss.Center,
 				logoStyle.Render(logo),
@@ -1603,6 +1716,57 @@ func (m Model) View() string {
 	)
 
 	return finalView
+}
+
+func (m Model) getCategoryColumn(categoryIdx int) int {
+	switch categoryIdx {
+	case 0, 1:
+		return 0
+	case 2, 3, 5:
+		return 1
+	case 4, 6:
+		return 2
+	default:
+		return 0
+	}
+}
+
+func (m Model) getCategoriesInColumn(col int) []int {
+	switch col {
+	case 0:
+		return []int{0, 1}
+	case 1:
+		return []int{2, 3, 5}
+	case 2:
+		return []int{4, 6}
+	default:
+		return []int{}
+	}
+}
+
+func (m *Model) moveToColumn(newCol int) {
+	oldCol := m.getCategoryColumn(m.selectedCategory)
+	categoriesInOldCol := m.getCategoriesInColumn(oldCol)
+
+	oldRank := 0
+	for i, catIdx := range categoriesInOldCol {
+		if catIdx == m.selectedCategory {
+			oldRank = i
+			break
+		}
+	}
+
+	categoriesInNewCol := m.getCategoriesInColumn(newCol)
+	if len(categoriesInNewCol) > 0 {
+		newRank := oldRank
+		if newRank >= len(categoriesInNewCol) {
+			newRank = len(categoriesInNewCol) - 1
+		}
+		m.selectedCategory = categoriesInNewCol[newRank]
+		if m.selectedService >= len(m.categories[m.selectedCategory].Services) {
+			m.selectedService = len(m.categories[m.selectedCategory].Services) - 1
+		}
+	}
 }
 
 func (m Model) renderMainContainer(content string, footer string) string {
