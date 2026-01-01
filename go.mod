@@ -22,17 +22,22 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.4 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.16 // indirect
 	github.com/aws/aws-sdk-go-v2/service/acm v1.37.18 // indirect
+	github.com/aws/aws-sdk-go-v2/service/backup v1.54.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.58.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.63.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/costexplorer v1.62.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.61.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.53.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.279.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ecr v1.55.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.70.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/efs v1.41.9 // indirect
 	github.com/aws/aws-sdk-go-v2/service/elasticache v1.51.8 // indirect
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.54.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/iam v1.53.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.9.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.11.16 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.16 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.16 // indirect
 	github.com/aws/aws-sdk-go-v2/service/kafka v1.46.6 // indirect
@@ -48,6 +53,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.30.8 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.12 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.5 // indirect
+	github.com/aws/aws-sdk-go-v2/service/transfer v1.68.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.70.6 // indirect
 	github.com/aws/smithy-go v1.24.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect

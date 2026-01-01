@@ -44,6 +44,11 @@ const (
 	viewBilling
 	viewSecurityHub
 	viewWAF
+	viewECR
+	viewEFS
+	viewBackup
+	viewDynamoDB
+	viewTransfer
 )
 
 type Model struct {
@@ -74,6 +79,11 @@ type Model struct {
 	billingModel    BillingModel
 	securityhubModel SecurityHubModel
 	wafModel        WAFModel
+	ecrModel        ECRModel
+	efsModel        EFSModel
+	backupModel     BackupModel
+	dynamodbModel   DynamoDBModel
+	transferModel   TransferModel
 	features        []string
 	selectedFeature int
 	width           int
@@ -162,6 +172,11 @@ func NewModel() (Model, error) {
 			"KMS Keys",
 			"Data Migration Service",
 			"Elastic Container Service",
+			"ECR Repositories",
+			"EFS File Systems",
+			"AWS Backup",
+			"DynamoDB Tables",
+			"AWS Transfer",
 			"Billing & Costs",
 			"Security Hub",
 			"WAFv2",
@@ -322,6 +337,31 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.view == viewWAF {
 			m.wafModel.SetSize(m.width, m.height)
 			m.wafModel, cmd = m.wafModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewECR {
+			m.ecrModel.SetSize(m.width, m.height)
+			m.ecrModel, cmd = m.ecrModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewEFS {
+			m.efsModel.SetSize(m.width, m.height)
+			m.efsModel, cmd = m.efsModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewBackup {
+			m.backupModel.SetSize(m.width, m.height)
+			m.backupModel, cmd = m.backupModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewDynamoDB {
+			m.dynamodbModel.SetSize(m.width, m.height)
+			m.dynamodbModel, cmd = m.dynamodbModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewTransfer {
+			m.transferModel.SetSize(m.width, m.height)
+			m.transferModel, cmd = m.transferModel.Update(msg)
 			cmds = append(cmds, cmd)
 		}
 		m.ready = true
@@ -556,6 +596,51 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		}
 
+		if m.view == viewECR {
+			if msg.String() == "esc" && m.ecrModel.state == ECRStateRepositories {
+				m.view = viewHome
+				return m, nil
+			}
+			m.ecrModel, cmd = m.ecrModel.Update(msg)
+			return m, cmd
+		}
+
+		if m.view == viewEFS {
+			if msg.String() == "esc" && m.efsModel.state == EFSStateFileSystems {
+				m.view = viewHome
+				return m, nil
+			}
+			m.efsModel, cmd = m.efsModel.Update(msg)
+			return m, cmd
+		}
+
+		if m.view == viewBackup {
+			if msg.String() == "esc" && m.backupModel.state == BackupStateMenu {
+				m.view = viewHome
+				return m, nil
+			}
+			m.backupModel, cmd = m.backupModel.Update(msg)
+			return m, cmd
+		}
+
+		if m.view == viewDynamoDB {
+			if msg.String() == "esc" {
+				m.view = viewHome
+				return m, nil
+			}
+			m.dynamodbModel, cmd = m.dynamodbModel.Update(msg)
+			return m, cmd
+		}
+
+		if m.view == viewTransfer {
+			if msg.String() == "esc" && m.transferModel.state == TransferStateServers {
+				m.view = viewHome
+				return m, nil
+			}
+			m.transferModel, cmd = m.transferModel.Update(msg)
+			return m, cmd
+		}
+
 		switch msg.String() {
 		case "r": // Manual refresh
 			if m.view == viewHome {
@@ -703,6 +788,36 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.wafModel.SetSize(m.width, m.height)
 				return m, m.wafModel.Init()
 			}
+			if m.features[m.selectedFeature] == "ECR Repositories" {
+				m.view = viewECR
+				m.ecrModel = NewECRModel(m.selectedProfile, m.styles, m.cache)
+				m.ecrModel.SetSize(m.width, m.height)
+				return m, m.ecrModel.Init()
+			}
+			if m.features[m.selectedFeature] == "EFS File Systems" {
+				m.view = viewEFS
+				m.efsModel = NewEFSModel(m.selectedProfile, m.styles, m.cache)
+				m.efsModel.SetSize(m.width, m.height)
+				return m, m.efsModel.Init()
+			}
+			if m.features[m.selectedFeature] == "AWS Backup" {
+				m.view = viewBackup
+				m.backupModel = NewBackupModel(m.selectedProfile, m.styles, m.cache)
+				m.backupModel.SetSize(m.width, m.height)
+				return m, m.backupModel.Init()
+			}
+			if m.features[m.selectedFeature] == "DynamoDB Tables" {
+				m.view = viewDynamoDB
+				m.dynamodbModel = NewDynamoDBModel(m.selectedProfile, m.styles, m.cache)
+				m.dynamodbModel.SetSize(m.width, m.height)
+				return m, m.dynamodbModel.Init()
+			}
+			if m.features[m.selectedFeature] == "AWS Transfer" {
+				m.view = viewTransfer
+				m.transferModel = NewTransferModel(m.selectedProfile, m.styles, m.cache)
+				m.transferModel.SetSize(m.width, m.height)
+				return m, m.transferModel.Init()
+			}
 		}
 
 	case ProfileSelectedMsg:
@@ -820,6 +935,31 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.wafModel.SetSize(m.width, m.height)
 			return m, tea.Batch(m.wafModel.Init(), m.fetchIdentity())
 		}
+		if m.view == viewECR {
+			m.ecrModel = NewECRModel(m.selectedProfile, m.styles, m.cache)
+			m.ecrModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.ecrModel.Init(), m.fetchIdentity())
+		}
+		if m.view == viewEFS {
+			m.efsModel = NewEFSModel(m.selectedProfile, m.styles, m.cache)
+			m.efsModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.efsModel.Init(), m.fetchIdentity())
+		}
+		if m.view == viewBackup {
+			m.backupModel = NewBackupModel(m.selectedProfile, m.styles, m.cache)
+			m.backupModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.backupModel.Init(), m.fetchIdentity())
+		}
+		if m.view == viewDynamoDB {
+			m.dynamodbModel = NewDynamoDBModel(m.selectedProfile, m.styles, m.cache)
+			m.dynamodbModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.dynamodbModel.Init(), m.fetchIdentity())
+		}
+		if m.view == viewTransfer {
+			m.transferModel = NewTransferModel(m.selectedProfile, m.styles, m.cache)
+			m.transferModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.transferModel.Init(), m.fetchIdentity())
+		}
 		return m, m.fetchIdentity()
 
 	case S3BucketsMsg, S3ObjectsMsg, S3ErrorMsg, S3SuccessMsg:
@@ -905,6 +1045,36 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case WAFWebACLsMsg, WAFIPSetsMsg, WAFErrorMsg, WAFMenuMsg:
 		if m.view == viewWAF {
 			m.wafModel, cmd = m.wafModel.Update(msg)
+			return m, cmd
+		}
+
+	case ECRReposMsg, ECRImagesMsg, ECRErrorMsg:
+		if m.view == viewECR {
+			m.ecrModel, cmd = m.ecrModel.Update(msg)
+			return m, cmd
+		}
+
+	case EFSFileSystemsMsg, EFSMountTargetsMsg, EFSErrorMsg:
+		if m.view == viewEFS {
+			m.efsModel, cmd = m.efsModel.Update(msg)
+			return m, cmd
+		}
+
+	case BackupPlansMsg, BackupJobsMsg, BackupErrorMsg:
+		if m.view == viewBackup {
+			m.backupModel, cmd = m.backupModel.Update(msg)
+			return m, cmd
+		}
+
+	case DynamoTablesMsg, DynamoErrorMsg:
+		if m.view == viewDynamoDB {
+			m.dynamodbModel, cmd = m.dynamodbModel.Update(msg)
+			return m, cmd
+		}
+
+	case TransferServersMsg, TransferUsersMsg, TransferErrorMsg:
+		if m.view == viewTransfer {
+			m.transferModel, cmd = m.transferModel.Update(msg)
 			return m, cmd
 		}
 
@@ -1133,6 +1303,50 @@ func (m Model) View() string {
 			titleParts = append(titleParts, string(m.wafModel.scope), "IP Sets")
 		}
 		titleText = strings.Join(titleParts, " / ")
+	} else if m.view == viewECR {
+		titleParts := []string{"ECR"}
+		if m.ecrModel.currentRepository != "" {
+			titleParts = append(titleParts, "Repositories", m.ecrModel.currentRepository)
+			if m.ecrModel.state == ECRStateImages {
+				titleParts = append(titleParts, "Images")
+			}
+		} else {
+			titleParts = append(titleParts, "Repositories")
+		}
+		titleText = strings.Join(titleParts, " / ")
+	} else if m.view == viewEFS {
+		titleParts := []string{"EFS"}
+		if m.efsModel.currentFileSystem != "" {
+			titleParts = append(titleParts, "File Systems", m.efsModel.currentFileSystem)
+			if m.efsModel.state == EFSStateMountTargets {
+				titleParts = append(titleParts, "Mount Targets")
+			}
+		} else {
+			titleParts = append(titleParts, "File Systems")
+		}
+		titleText = strings.Join(titleParts, " / ")
+	} else if m.view == viewBackup {
+		titleParts := []string{"AWS Backup"}
+		switch m.backupModel.state {
+		case BackupStatePlans:
+			titleParts = append(titleParts, "Plans")
+		case BackupStateJobs:
+			titleParts = append(titleParts, "Jobs")
+		}
+		titleText = strings.Join(titleParts, " / ")
+	} else if m.view == viewDynamoDB {
+		titleText = "DynamoDB / Tables"
+	} else if m.view == viewTransfer {
+		titleParts := []string{"AWS Transfer"}
+		if m.transferModel.currentServer != "" {
+			titleParts = append(titleParts, "Servers", m.transferModel.currentServer)
+			if m.transferModel.state == TransferStateUsers {
+				titleParts = append(titleParts, "Users")
+			}
+		} else {
+			titleParts = append(titleParts, "Servers")
+		}
+		titleText = strings.Join(titleParts, " / ")
 	}
 	currentViewTitle := m.styles.ViewTitle.Render(titleText)
 
@@ -1290,6 +1504,16 @@ func (m Model) View() string {
 			boxContent = m.securityhubModel.View()
 		case viewWAF:
 			boxContent = m.wafModel.View()
+		case viewECR:
+			boxContent = m.ecrModel.View()
+		case viewEFS:
+			boxContent = m.efsModel.View()
+		case viewBackup:
+			boxContent = m.backupModel.View()
+		case viewDynamoDB:
+			boxContent = m.dynamodbModel.View()
+		case viewTransfer:
+			boxContent = m.transferModel.View()
 		default:
 			// Home View
 			logo := `
@@ -1333,6 +1557,11 @@ func (m Model) View() string {
 				"Billing & Costs":           "󰠶 ",
 				"Security Hub":               "󰒙 ",
 				"WAFv2":                      "󰖛 ",
+				"ECR Repositories":          "󰙨 ",
+				"EFS File Systems":          "󰙨 ",
+				"AWS Backup":                "󰁯 ",
+				"DynamoDB Tables":           "󰆼 ",
+				"AWS Transfer":              "󰛳 ",
 			}
 
 			for i, feature := range m.features {
