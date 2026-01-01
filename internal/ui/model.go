@@ -36,6 +36,8 @@ const (
 	viewSM
 	viewRoute53
 	viewACM
+	viewSNS
+	viewKMS
 )
 
 type Model struct {
@@ -59,6 +61,8 @@ type Model struct {
 	smModel         SMModel
 	route53Model    Route53Model
 	acmModel        ACMModel
+	snsModel        SNSModel
+	kmsModel        KMSModel
 	features        []string
 	selectedFeature int
 	width           int
@@ -143,8 +147,8 @@ func NewModel() (Model, error) {
 			"Secrets Manager",
 			"Route 53 Zones",
 			"ACM Certificates",
-			"SNS Topics (Todo)",
-			"KMS Keys (Todo)",
+			"SNS Topics",
+			"KMS Keys",
 		},
 		cache:     appCache,
 		cacheKeys: cache.NewKeyBuilder(selected),
@@ -267,6 +271,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.view == viewACM {
 			m.acmModel.SetSize(m.width, m.height)
 			m.acmModel, cmd = m.acmModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewSNS {
+			m.snsModel.SetSize(m.width, m.height)
+			m.snsModel, cmd = m.snsModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewKMS {
+			m.kmsModel.SetSize(m.width, m.height)
+			m.kmsModel, cmd = m.kmsModel.Update(msg)
 			cmds = append(cmds, cmd)
 		}
 		m.ready = true
@@ -417,6 +431,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		}
 
+		if m.view == viewSNS {
+			if msg.String() == "esc" {
+				m.view = viewHome
+				return m, nil
+			}
+			m.snsModel, cmd = m.snsModel.Update(msg)
+			return m, cmd
+		}
+
+		if m.view == viewKMS {
+			if msg.String() == "esc" {
+				m.view = viewHome
+				return m, nil
+			}
+			m.kmsModel, cmd = m.kmsModel.Update(msg)
+			return m, cmd
+		}
+
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
@@ -524,6 +556,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.acmModel.SetSize(m.width, m.height)
 				return m, m.acmModel.Init()
 			}
+			if m.features[m.selectedFeature] == "SNS Topics" {
+				m.view = viewSNS
+				m.snsModel = NewSNSModel(m.selectedProfile, m.styles, m.cache)
+				m.snsModel.SetSize(m.width, m.height)
+				return m, m.snsModel.Init()
+			}
+			if m.features[m.selectedFeature] == "KMS Keys" {
+				m.view = viewKMS
+				m.kmsModel = NewKMSModel(m.selectedProfile, m.styles, m.cache)
+				m.kmsModel.SetSize(m.width, m.height)
+				return m, m.kmsModel.Init()
+			}
 		}
 
 	case ProfileSelectedMsg:
@@ -602,6 +646,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.acmModel.SetSize(m.width, m.height)
 			return m, tea.Batch(m.acmModel.Init(), m.fetchIdentity())
 		}
+		if m.view == viewSNS {
+			m.snsModel = NewSNSModel(m.selectedProfile, m.styles, m.cache)
+			m.snsModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.snsModel.Init(), m.fetchIdentity())
+		}
+		if m.view == viewKMS {
+			m.kmsModel = NewKMSModel(m.selectedProfile, m.styles, m.cache)
+			m.kmsModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.kmsModel.Init(), m.fetchIdentity())
+		}
 		return m, m.fetchIdentity()
 
 	case S3BucketsMsg, S3ObjectsMsg, S3ErrorMsg, S3SuccessMsg:
@@ -658,6 +712,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case CertificatesMsg, ACMErrorMsg:
 		m.acmModel, cmd = m.acmModel.Update(msg)
+		return m, cmd
+
+	case SNSTopicsMsg, SNSErrorMsg:
+		m.snsModel, cmd = m.snsModel.Update(msg)
+		return m, cmd
+
+	case KMSKeysMsg, KMSErrorMsg:
+		m.kmsModel, cmd = m.kmsModel.Update(msg)
 		return m, cmd
 
 	case IdentityMsg:
@@ -812,6 +874,10 @@ func (m Model) View() string {
 		titleText = strings.Join(titleParts, " / ")
 	} else if m.view == viewACM {
 		titleText = "ACM / Certificates"
+	} else if m.view == viewSNS {
+		titleText = "SNS / Topics"
+	} else if m.view == viewKMS {
+		titleText = "KMS / Keys"
 	}
 	currentViewTitle := m.styles.ViewTitle.Render(titleText)
 
@@ -939,6 +1005,10 @@ func (m Model) View() string {
 			boxContent = m.route53Model.View()
 		case viewACM:
 			boxContent = m.acmModel.View()
+		case viewSNS:
+			boxContent = m.snsModel.View()
+		case viewKMS:
+			boxContent = m.kmsModel.View()
 		default:
 			// Home View
 			logo := `
@@ -975,8 +1045,9 @@ func (m Model) View() string {
 				"Secrets Manager":           "󰌆 ",
 				"Route 53 Zones":            "󰇧 ",
 				"ACM Certificates":          "󰔕 ",
-				"SNS Topics (Todo)":         "󰰓 ",
-				"KMS Keys (Todo)":           "󰌆 ",
+				"SNS Topics":                "󰰓 ",
+				"KMS Keys":                  "󰌆 ",
+				"ACM Certificates (Todo)":   "󰔕 ",
 			}
 
 			for i, feature := range m.features {
