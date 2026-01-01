@@ -8,6 +8,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/giovannirossini/aws-tui/internal/aws"
 	"github.com/giovannirossini/aws-tui/internal/cache"
 )
@@ -33,6 +34,7 @@ func (i route53Item) FilterValue() string { return i.title + " " + i.description
 type Route53Model struct {
 	client           *aws.Route53Client
 	list             list.Model
+	delegate         route53ItemDelegate
 	styles           Styles
 	state            Route53State
 	width            int
@@ -62,8 +64,8 @@ var hostedZoneColumns = []Column{
 var route53RecordColumns = []Column{
 	{Title: "Record Name", Width: 0.4},
 	{Title: "Type", Width: 0.1},
-	{Title: "Value", Width: 0.4},
-	{Title: "TTL", Width: 0.1},
+	{Title: "Value", Width: 0.45},
+	{Title: "TTL", Width: 0.05},
 }
 
 func (d route53ItemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
@@ -107,6 +109,7 @@ func NewRoute53Model(profile string, styles Styles, appCache *cache.Cache) Route
 
 	return Route53Model{
 		list:      l,
+		delegate:  d,
 		styles:    styles,
 		state:     Route53StateZones,
 		profile:   profile,
@@ -189,6 +192,8 @@ func (m Route53Model) Update(msg tea.Msg) (Route53Model, tea.Cmd) {
 		}
 		m.list.SetItems(items)
 		m.list.ResetSelected()
+		m.delegate.state = Route53StateZones
+		m.list.SetDelegate(m.delegate)
 		m.state = Route53StateZones
 
 	case RecordSetsMsg:
@@ -197,7 +202,10 @@ func (m Route53Model) Update(msg tea.Msg) (Route53Model, tea.Cmd) {
 			recordType := v.Type
 			val := strings.Join(v.Values, ", ")
 			if v.Alias != "" {
-				recordType = v.Type + " (ALIAS)"
+				aliasTag := lipgloss.NewStyle().
+					Foreground(m.styles.Muted).
+					Render("(ALIAS)")
+				recordType = fmt.Sprintf("%s %s", v.Type, aliasTag)
 				val = v.Alias
 			}
 			ttl := fmt.Sprintf("%d", v.TTL)
@@ -218,6 +226,8 @@ func (m Route53Model) Update(msg tea.Msg) (Route53Model, tea.Cmd) {
 		}
 		m.list.SetItems(items)
 		m.list.ResetSelected()
+		m.delegate.state = Route53StateRecords
+		m.list.SetDelegate(m.delegate)
 		m.state = Route53StateRecords
 
 	case Route53ErrorMsg:

@@ -15,43 +15,64 @@ type Column struct {
 }
 
 func RenderTableHelpers(m list.Model, styles Styles, columns []Column) ([]lipgloss.Style, string) {
-	width := m.Width() - 4 // Account for list padding
-	
+	fullWidth := m.Width()
+	tableContentWidth := fullWidth - 4 // 2 left + 2 right padding
+	if tableContentWidth < 0 {
+		tableContentWidth = 0
+	}
+
 	columnStyles := make([]lipgloss.Style, len(columns))
 	headerStrings := make([]string, len(columns))
-	
+
 	totalWidthUsed := 0
 	for i, col := range columns {
-		colWidth := int(float64(width) * col.Width)
+		colWidth := int(float64(tableContentWidth) * col.Width)
 		if i == len(columns)-1 {
 			// Last column takes the remaining space
-			colWidth = width - totalWidthUsed
+			colWidth = tableContentWidth - totalWidthUsed
 		}
 		totalWidthUsed += colWidth
-		
+
+		padding := 2
 		// Subtract padding from width to ensure the block stays within colWidth
-		contentWidth := colWidth - 2
+		contentWidth := colWidth - padding
 		if contentWidth < 0 {
-			contentWidth = 0
+			// For very small columns (like TTL), drop the padding so values still render
+			padding = 0
+			contentWidth = colWidth
 		}
 
-		columnStyles[i] = lipgloss.NewStyle().Width(contentWidth).MaxWidth(contentWidth).MaxHeight(1).PaddingRight(2)
-		headerStrings[i] = columnStyles[i].Copy().Foreground(styles.Muted).Bold(true).Render(strings.ToUpper(col.Title))
+		columnStyles[i] = lipgloss.NewStyle().
+			Width(contentWidth).
+			MaxWidth(contentWidth).
+			MaxHeight(1)
+		if padding > 0 {
+			columnStyles[i] = columnStyles[i].PaddingRight(padding)
+		}
+
+		headerStrings[i] = columnStyles[i].Copy().
+			Foreground(styles.Muted).
+			Bold(true).
+			Render(strings.ToUpper(col.Title))
 	}
-	
+
 	header := lipgloss.JoinHorizontal(lipgloss.Top, headerStrings...)
-	header = lipgloss.NewStyle().PaddingLeft(2).Render(header)
+	header = lipgloss.NewStyle().
+		PaddingLeft(2).
+		PaddingRight(2).
+		Width(fullWidth).
+		Render(header)
 	return columnStyles, header
 }
 
 func RenderTableRow(w io.Writer, m list.Model, styles Styles, columnStyles []lipgloss.Style, values []string, isSelected bool) {
 	rowValues := make([]string, len(columnStyles))
-	
+
 	contentColor := styles.Snow
 	if isSelected {
 		contentColor = styles.Primary
 	}
-	
+
 	for i, val := range values {
 		style := columnStyles[i].Copy().Foreground(contentColor)
 		if isSelected {
@@ -59,10 +80,14 @@ func RenderTableRow(w io.Writer, m list.Model, styles Styles, columnStyles []lip
 		}
 		rowValues[i] = style.Render(val)
 	}
-	
+
 	row := lipgloss.JoinHorizontal(lipgloss.Top, rowValues...)
-	
-	itemStyle := lipgloss.NewStyle().PaddingLeft(2).Width(m.Width() - 2)
+
+	fullWidth := m.Width()
+	itemStyle := lipgloss.NewStyle().
+		PaddingLeft(2).
+		PaddingRight(2).
+		Width(fullWidth)
 	fmt.Fprintf(w, "%s", itemStyle.Render(row))
 }
 
@@ -75,9 +100,13 @@ func RenderOverlay(base, overlay string, width, height int) string {
 	// Calculate center position
 	x := (width - overlayWidth) / 2
 	y := (height - overlayHeight) / 2
-	
-	if x < 0 { x = 0 }
-	if y < 0 { y = 0 }
+
+	if x < 0 {
+		x = 0
+	}
+	if y < 0 {
+		y = 0
+	}
 
 	baseLines := strings.Split(base, "\n")
 	overlayLines := strings.Split(overlay, "\n")
@@ -102,6 +131,6 @@ func RenderOverlay(base, overlay string, width, height int) string {
 			sb.WriteString("\n")
 		}
 	}
-	
+
 	return sb.String()
 }
