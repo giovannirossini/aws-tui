@@ -22,6 +22,10 @@ github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.16 h1:CjMzUs78RDDv4ROu3JnJn/Ig1r6
 github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.16/go.mod h1:uVW4OLBqbJXSHJYA9svT9BluSvvwbzLQ2Crf6UPzR3c=
 github.com/aws/aws-sdk-go-v2/service/acm v1.37.18 h1:3rTIYf8RlwM3XjF6pLi08IEXKTOXumInlWQX73tcVsU=
 github.com/aws/aws-sdk-go-v2/service/acm v1.37.18/go.mod h1:GzbPzpSxdxuZW3cs+3XKt8B46/mbktp2y69dfQWYJXo=
+github.com/aws/aws-sdk-go-v2/service/apigateway v1.38.3 h1:nnhGwOSJAnWSwcOINuRUql8/C/l0pCGedsNgv6FSZHs=
+github.com/aws/aws-sdk-go-v2/service/apigateway v1.38.3/go.mod h1:U3xTNpFRAV7yduECTfDBDJVFmY5FLrL5HsTSigwOeHs=
+github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.33.4 h1:FcarAOOdK+8gIYD8/90x7JTOAno+U6IrzMdowePmyBA=
+github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.33.4/go.mod h1:pCcxm44Iqac20ss6LXtMfg9eAqrP0HHmovnX5PZuHcE=
 github.com/aws/aws-sdk-go-v2/service/backup v1.54.5 h1:1ohWtO/jcqLqX1lh0sFcAKXCChhf7inCemQZMTqNfF0=
 github.com/aws/aws-sdk-go-v2/service/backup v1.54.5/go.mod h1:mFaiE+PG/HYqwomFCUPLbqkQSwztsPZNIu30rBkRohc=
 github.com/aws/aws-sdk-go-v2/service/cloudfront v1.58.3 h1:/nyo0QD97D5VQQL/UE+rKGNKz+BesiqJgjdmp0qtTOQ=

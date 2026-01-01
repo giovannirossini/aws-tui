@@ -22,6 +22,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.4 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.16 // indirect
 	github.com/aws/aws-sdk-go-v2/service/acm v1.37.18 // indirect
+	github.com/aws/aws-sdk-go-v2/service/apigateway v1.38.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.33.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/backup v1.54.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.58.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.63.0 // indirect

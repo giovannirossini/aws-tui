@@ -38,6 +38,7 @@ const (
 	TTLBackupResources      = 10 * time.Minute // AWS Backup resources
 	TTLDynamoDBResources    = 10 * time.Minute // DynamoDB resources
 	TTLTransferResources    = 10 * time.Minute // AWS Transfer resources
+	TTLAPIGatewayResources  = 10 * time.Minute // API Gateway resources
 )
 
 // KeyBuilder provides methods to build cache keys
@@ -228,4 +229,9 @@ func (kb *KeyBuilder) TransferResources(resourceType string) string {
 // TransferUsers returns the cache key for AWS Transfer users in a server
 func (kb *KeyBuilder) TransferUsers(serverId string) string {
 	return fmt.Sprintf("%s:transfer:server:%s:users", kb.profile, serverId)
+}
+
+// APIGatewayResources returns the cache key for API Gateway resources
+func (kb *KeyBuilder) APIGatewayResources(resourceType string) string {
+	return fmt.Sprintf("%s:apigateway:%s", kb.profile, resourceType)
 }

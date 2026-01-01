@@ -51,6 +51,7 @@ const (
 	viewBackup
 	viewDynamoDB
 	viewTransfer
+	viewAPIGateway
 )
 
 type ServiceCategory struct {
@@ -86,6 +87,7 @@ var featureIcons = map[string]string{
 	"AWS Backup":                         "󰁯 ",
 	"DynamoDB":                           "󰆼 ",
 	"AWS Transfer":                       "󰛳 ",
+	"API Gateway":                        "󰓡 ",
 }
 
 // serviceHandler is a function type that handles service selection
@@ -254,6 +256,12 @@ func getServiceHandlers() map[string]serviceHandler {
 			m.transferModel.SetSize(m.width, m.height)
 			return *m, m.transferModel.Init()
 		},
+		"API Gateway": func(m *Model) (tea.Model, tea.Cmd) {
+			m.view = viewAPIGateway
+			m.apiGatewayModel = NewAPIGatewayModel(m.selectedProfile, m.styles, m.cache)
+			m.apiGatewayModel.SetSize(m.width, m.height)
+			return *m, m.apiGatewayModel.Init()
+		},
 	}
 }
 
@@ -292,6 +300,7 @@ func getServiceCategories() []ServiceCategory {
 				"Virtual Private Cloud (VPC)",
 				"Route 53",
 				"CloudFront",
+				"API Gateway",
 			},
 		},
 		{
@@ -357,6 +366,7 @@ type Model struct {
 	backupModel      BackupModel
 	dynamodbModel    DynamoDBModel
 	transferModel    TransferModel
+	apiGatewayModel  APIGatewayModel
 	categories       []ServiceCategory
 	selectedCategory int
 	selectedService  int
@@ -623,6 +633,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.view == viewTransfer {
 			m.transferModel.SetSize(m.width, m.height)
 			m.transferModel, cmd = m.transferModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewAPIGateway {
+			m.apiGatewayModel.SetSize(m.width, m.height)
+			m.apiGatewayModel, cmd = m.apiGatewayModel.Update(msg)
 			cmds = append(cmds, cmd)
 		}
 		m.ready = true
@@ -941,6 +956,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		}
 
+		if m.view == viewAPIGateway {
+			if msg.String() == "esc" && m.apiGatewayModel.state != APIGatewayStateMenu {
+				return m, m.apiGatewayModel.showMenu()
+			}
+			if msg.String() == "esc" && m.apiGatewayModel.state == APIGatewayStateMenu {
+				m.view = viewHome
+				return m, nil
+			}
+			m.apiGatewayModel, cmd = m.apiGatewayModel.Update(msg)
+			return m, cmd
+		}
+
 		switch msg.String() {
 		case "r": // Manual refresh
 			if m.view == viewHome {
@@ -1138,6 +1165,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.transferModel.SetSize(m.width, m.height)
 			return m, tea.Batch(m.transferModel.Init(), m.fetchIdentity())
 		}
+		if m.view == viewAPIGateway {
+			m.apiGatewayModel = NewAPIGatewayModel(m.selectedProfile, m.styles, m.cache)
+			m.apiGatewayModel.SetSize(m.width, m.height)
+			return m, tea.Batch(m.apiGatewayModel.Init(), m.fetchIdentity())
+		}
 		return m, m.fetchIdentity()
 
 	case S3BucketsMsg, S3ObjectsMsg, S3ErrorMsg, S3SuccessMsg:
@@ -1253,6 +1285,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case TransferServersMsg, TransferUsersMsg, TransferErrorMsg:
 		if m.view == viewTransfer {
 			m.transferModel, cmd = m.transferModel.Update(msg)
+			return m, cmd
+		}
+
+	case APIGatewayRestAPIsMsg, APIGatewayHTTPAPIsMsg, APIGatewayErrorMsg, APIGatewayMenuMsg:
+		if m.view == viewAPIGateway {
+			m.apiGatewayModel, cmd = m.apiGatewayModel.Update(msg)
 			return m, cmd
 		}
 
@@ -1514,18 +1552,29 @@ func (m Model) View() string {
 		titleText = strings.Join(titleParts, " / ")
 	} else if m.view == viewDynamoDB {
 		titleText = "DynamoDB / Tables"
-	} else if m.view == viewTransfer {
-		titleParts := []string{"AWS Transfer"}
-		if m.transferModel.currentServer != "" {
-			titleParts = append(titleParts, "Servers", m.transferModel.currentServer)
-			if m.transferModel.state == TransferStateUsers {
-				titleParts = append(titleParts, "Users")
+		} else if m.view == viewTransfer {
+			titleParts := []string{"AWS Transfer"}
+			if m.transferModel.currentServer != "" {
+				titleParts = append(titleParts, "Servers", m.transferModel.currentServer)
+				if m.transferModel.state == TransferStateUsers {
+					titleParts = append(titleParts, "Users")
+				}
+			} else {
+				titleParts = append(titleParts, "Servers")
 			}
-		} else {
-			titleParts = append(titleParts, "Servers")
+			titleText = strings.Join(titleParts, " / ")
+		} else if m.view == viewAPIGateway {
+			titleParts := []string{"API Gateway"}
+			switch m.apiGatewayModel.state {
+			case APIGatewayStateMenu:
+				titleParts = append(titleParts, "Resources")
+			case APIGatewayStateRestAPIs:
+				titleParts = append(titleParts, "REST APIs")
+			case APIGatewayStateHTTPAPIs:
+				titleParts = append(titleParts, "HTTP APIs")
+			}
+			titleText = strings.Join(titleParts, " / ")
 		}
-		titleText = strings.Join(titleParts, " / ")
-	}
 	currentViewTitle := m.styles.ViewTitle.Render(titleText)
 
 	// Profile Section
@@ -1693,6 +1742,8 @@ func (m Model) View() string {
 			boxContent = m.dynamodbModel.View()
 		case viewTransfer:
 			boxContent = m.transferModel.View()
+		case viewAPIGateway:
+			boxContent = m.apiGatewayModel.View()
 		default:
 			// Home View
 			logo := `
