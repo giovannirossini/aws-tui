@@ -34,6 +34,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/kafka v1.46.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.87.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/rds v1.113.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/route53 v1.62.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/signin v1.0.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.20 // indirect

@@ -8,6 +8,7 @@ This project is an AWS Terminal UI (TUI) written in Go.
 - Prefer simplicity and readability over cleverness.
 - Maintain a consistent coding style.
 - Use the latest stable versions of dependencies.
+- Always run Makefile commands for the project (make test, make build, make)
 
 ## Go Specifics
 - Use `gofmt` or `goimports` for formatting.

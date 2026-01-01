@@ -34,6 +34,7 @@ const (
 	viewMSK
 	viewSQS
 	viewSM
+	viewRoute53
 )
 
 type Model struct {
@@ -55,6 +56,7 @@ type Model struct {
 	mskModel        MSKModel
 	sqsModel        SQSModel
 	smModel         SMModel
+	route53Model    Route53Model
 	features        []string
 	selectedFeature int
 	width           int
@@ -137,7 +139,7 @@ func NewModel() (Model, error) {
 			"MSK",
 			"SQS Queues",
 			"Secrets Manager",
-			"Route 53 Zones (Todo)",
+			"Route 53 Zones",
 			"ACM Certificates (Todo)",
 			"SNS Topics (Todo)",
 			"KMS Keys (Todo)",
@@ -253,6 +255,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.view == viewSM {
 			m.smModel.SetSize(m.width, m.height)
 			m.smModel, cmd = m.smModel.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if m.view == viewRoute53 {
+			m.route53Model.SetSize(m.width, m.height)
+			m.route53Model, cmd = m.route53Model.Update(msg)
 			cmds = append(cmds, cmd)
 		}
 		m.ready = true
@@ -385,6 +392,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		}
 
+		if m.view == viewRoute53 {
+			if msg.String() == "esc" && m.route53Model.state == Route53StateZones {
+				m.view = viewHome
+				return m, nil
+			}
+			m.route53Model, cmd = m.route53Model.Update(msg)
+			return m, cmd
+		}
+
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
@@ -480,6 +496,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.smModel.SetSize(m.width, m.height)
 				return m, m.smModel.Init()
 			}
+			if m.features[m.selectedFeature] == "Route 53 Zones" {
+				m.view = viewRoute53
+				m.route53Model = NewRoute53Model(m.selectedProfile, m.styles, m.cache)
+				m.route53Model.SetSize(m.width, m.height)
+				return m, m.route53Model.Init()
+			}
 		}
 
 	case ProfileSelectedMsg:
@@ -548,6 +570,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.smModel.SetSize(m.width, m.height)
 			return m, tea.Batch(m.smModel.Init(), m.fetchIdentity())
 		}
+		if m.view == viewRoute53 {
+			m.route53Model = NewRoute53Model(m.selectedProfile, m.styles, m.cache)
+			m.route53Model.SetSize(m.width, m.height)
+			return m, tea.Batch(m.route53Model.Init(), m.fetchIdentity())
+		}
 		return m, m.fetchIdentity()
 
 	case S3BucketsMsg, S3ObjectsMsg, S3ErrorMsg, S3SuccessMsg:
@@ -596,6 +623,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case SMSecretsMsg, SMSecretValueMsg, SMErrorMsg:
 		m.smModel, cmd = m.smModel.Update(msg)
+		return m, cmd
+
+	case HostedZonesMsg, RecordSetsMsg, Route53ErrorMsg:
+		m.route53Model, cmd = m.route53Model.Update(msg)
 		return m, cmd
 
 	case IdentityMsg:
@@ -739,6 +770,15 @@ func (m Model) View() string {
 			titleParts = append(titleParts, "Secrets", m.smModel.selectedSecret)
 		}
 		titleText = strings.Join(titleParts, " / ")
+	} else if m.view == viewRoute53 {
+		titleParts := []string{"Route 53"}
+		switch m.route53Model.state {
+		case Route53StateZones:
+			titleParts = append(titleParts, "Zones")
+		case Route53StateRecords:
+			titleParts = append(titleParts, "Zones", m.route53Model.selectedZoneName, "Records")
+		}
+		titleText = strings.Join(titleParts, " / ")
 	}
 	currentViewTitle := m.styles.ViewTitle.Render(titleText)
 
@@ -862,6 +902,8 @@ func (m Model) View() string {
 			boxContent = m.sqsModel.View()
 		case viewSM:
 			boxContent = m.smModel.View()
+		case viewRoute53:
+			boxContent = m.route53Model.View()
 		default:
 			// Home View
 			logo := `
@@ -896,8 +938,8 @@ func (m Model) View() string {
 				"MSK":                       "󰒔 ",
 				"SQS Queues":                "󰒔 ",
 				"Secrets Manager":           "󰌆 ",
+				"Route 53 Zones":            "󰇧 ",
 				"ACM Certificates (Todo)":   "󰔕 ",
-				"Route 53 Zones (Todo)":     "󰇧 ",
 				"SNS Topics (Todo)":         "󰰓 ",
 				"KMS Keys (Todo)":           "󰌆 ",
 			}

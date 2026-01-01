@@ -24,6 +24,7 @@ const (
 	TTLMSKResources        = 10 * time.Minute // MSK resources
 	TTLSQSResources        = 10 * time.Minute // SQS resources
 	TTLSMResources         = 10 * time.Minute // Secrets Manager resources
+	TTLRoute53Resources    = 10 * time.Minute // Route 53 resources
 )
 
 // KeyBuilder provides methods to build cache keys
@@ -129,4 +130,9 @@ func (kb *KeyBuilder) SQSResources(resourceType string) string {
 // SMResources returns the cache key for Secrets Manager resources
 func (kb *KeyBuilder) SMResources(resourceType string) string {
 	return fmt.Sprintf("%s:sm:%s", kb.profile, resourceType)
+}
+
+// Route53Resources returns the cache key for Route 53 resources
+func (kb *KeyBuilder) Route53Resources(resourceType string) string {
+	return fmt.Sprintf("%s:route53:%s", kb.profile, resourceType)
 }

@@ -29,11 +29,18 @@ func RenderTableHelpers(m list.Model, styles Styles, columns []Column) ([]lipglo
 		}
 		totalWidthUsed += colWidth
 		
-		columnStyles[i] = lipgloss.NewStyle().Width(colWidth).MaxWidth(colWidth).MaxHeight(1).PaddingRight(2)
+		// Subtract padding from width to ensure the block stays within colWidth
+		contentWidth := colWidth - 2
+		if contentWidth < 0 {
+			contentWidth = 0
+		}
+
+		columnStyles[i] = lipgloss.NewStyle().Width(contentWidth).MaxWidth(contentWidth).MaxHeight(1).PaddingRight(2)
 		headerStrings[i] = columnStyles[i].Copy().Foreground(styles.Muted).Bold(true).Render(strings.ToUpper(col.Title))
 	}
 	
 	header := lipgloss.JoinHorizontal(lipgloss.Top, headerStrings...)
+	header = lipgloss.NewStyle().PaddingLeft(2).Render(header)
 	return columnStyles, header
 }
 
