@@ -28,13 +28,13 @@ func NewEC2ResourcesClient(ctx context.Context, profile string) (*EC2ResourcesCl
 }
 
 type InstanceInfo struct {
-	ID            string
-	Type          string
-	State         string
-	PublicIP      string
-	PrivateIP     string
+	ID               string
+	Type             string
+	State            string
+	PublicIP         string
+	PrivateIP        string
 	AvailabilityZone string
-	Name          string
+	Name             string
 }
 
 func (c *EC2ResourcesClient) ListInstances(ctx context.Context) ([]InstanceInfo, error) {
@@ -54,13 +54,13 @@ func (c *EC2ResourcesClient) ListInstances(ctx context.Context) ([]InstanceInfo,
 				}
 			}
 			instances = append(instances, InstanceInfo{
-				ID:            aws.ToString(i.InstanceId),
-				Type:          string(i.InstanceType),
-				State:         string(i.State.Name),
-				PublicIP:      aws.ToString(i.PublicIpAddress),
-				PrivateIP:     aws.ToString(i.PrivateIpAddress),
+				ID:               aws.ToString(i.InstanceId),
+				Type:             string(i.InstanceType),
+				State:            string(i.State.Name),
+				PublicIP:         aws.ToString(i.PublicIpAddress),
+				PrivateIP:        aws.ToString(i.PrivateIpAddress),
 				AvailabilityZone: aws.ToString(i.Placement.AvailabilityZone),
-				Name:          name,
+				Name:             name,
 			})
 		}
 	}
@@ -138,12 +138,12 @@ func (c *EC2ResourcesClient) ListVolumes(ctx context.Context) ([]VolumeInfo, err
 }
 
 type TargetGroupInfo struct {
-	ARN              string
-	Name             string
-	Protocol         string
-	Port             int32
-	VpcID            string
-	TargetType       string
+	ARN        string
+	Name       string
+	Protocol   string
+	Port       int32
+	VpcID      string
+	TargetType string
 }
 
 func (c *EC2ResourcesClient) ListTargetGroups(ctx context.Context) ([]TargetGroupInfo, error) {

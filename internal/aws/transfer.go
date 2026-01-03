@@ -25,12 +25,12 @@ func NewTransferClient(ctx context.Context, profile string) (*TransferClient, er
 }
 
 type TransferServerInfo struct {
-	ServerId      string
-	Arn           string
-	State         string
-	EndpointType  string
+	ServerId             string
+	Arn                  string
+	State                string
+	EndpointType         string
 	IdentityProviderType string
-	UserCount     int32
+	UserCount            int32
 }
 
 func (c *TransferClient) ListServers(ctx context.Context) ([]TransferServerInfo, error) {
@@ -45,12 +45,12 @@ func (c *TransferClient) ListServers(ctx context.Context) ([]TransferServerInfo,
 
 		for _, s := range output.Servers {
 			servers = append(servers, TransferServerInfo{
-				ServerId:      aws.ToString(s.ServerId),
-				Arn:           aws.ToString(s.Arn),
-				State:         string(s.State),
-				EndpointType:  string(s.EndpointType),
+				ServerId:             aws.ToString(s.ServerId),
+				Arn:                  aws.ToString(s.Arn),
+				State:                string(s.State),
+				EndpointType:         string(s.EndpointType),
 				IdentityProviderType: string(s.IdentityProviderType),
-				UserCount:     aws.ToInt32(s.UserCount),
+				UserCount:            aws.ToInt32(s.UserCount),
 			})
 		}
 	}
@@ -59,9 +59,9 @@ func (c *TransferClient) ListServers(ctx context.Context) ([]TransferServerInfo,
 }
 
 type TransferUserInfo struct {
-	UserName string
-	Role     string
-	HomeDirectory string
+	UserName          string
+	Role              string
+	HomeDirectory     string
 	SshPublicKeyCount int
 }
 
@@ -88,9 +88,9 @@ func (c *TransferClient) ListUsers(ctx context.Context, serverId string) ([]Tran
 
 			user := desc.User
 			users = append(users, TransferUserInfo{
-				UserName:      aws.ToString(user.UserName),
-				Role:          aws.ToString(user.Role),
-				HomeDirectory: aws.ToString(user.HomeDirectory),
+				UserName:          aws.ToString(user.UserName),
+				Role:              aws.ToString(user.Role),
+				HomeDirectory:     aws.ToString(user.HomeDirectory),
 				SshPublicKeyCount: len(user.SshPublicKeys),
 			})
 		}

@@ -41,20 +41,20 @@ func (i cwItem) Description() string { return i.description }
 func (i cwItem) FilterValue() string { return i.title + " " + i.description + " " + i.id }
 
 type CWModel struct {
-	client           *aws.CloudWatchClient
-	list             list.Model
-	styles           Styles
-	state            CWState
-	width            int
-	height           int
-	profile          string
-	err              error
-	cache            *cache.Cache
-	cacheKeys        *cache.KeyBuilder
-	selectedGroup    string
-	selectedStream   string
-	selectedMessage  string
-	originView       viewState
+	client          *aws.CloudWatchClient
+	list            list.Model
+	styles          Styles
+	state           CWState
+	width           int
+	height          int
+	profile         string
+	err             error
+	cache           *cache.Cache
+	cacheKeys       *cache.KeyBuilder
+	selectedGroup   string
+	selectedStream  string
+	selectedMessage string
+	originView      viewState
 }
 
 type cwItemDelegate struct {
@@ -401,7 +401,7 @@ func (m CWModel) View() string {
 		displayMsg := m.highlightLog(m.selectedMessage)
 
 		return lipgloss.NewStyle().
-			Width(m.width - InnerContentWidthOffset).
+			Width(m.width-InnerContentWidthOffset).
 			Padding(1, 2).
 			Render(displayMsg)
 	}

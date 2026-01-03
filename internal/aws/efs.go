@@ -26,14 +26,14 @@ func NewEFSClient(ctx context.Context, profile string) (*EFSClient, error) {
 }
 
 type FileSystemInfo struct {
-	FileSystemId      string
-	Name              string
-	CreationTime      time.Time
-	LifeCycleState    string
+	FileSystemId         string
+	Name                 string
+	CreationTime         time.Time
+	LifeCycleState       string
 	NumberOfMountTargets int32
-	SizeInBytes       int64
-	PerformanceMode   string
-	ThroughputMode    string
+	SizeInBytes          int64
+	PerformanceMode      string
+	ThroughputMode       string
 }
 
 func (c *EFSClient) ListFileSystems(ctx context.Context) ([]FileSystemInfo, error) {
@@ -75,13 +75,13 @@ func (c *EFSClient) ListFileSystems(ctx context.Context) ([]FileSystemInfo, erro
 }
 
 type MountTargetInfo struct {
-	MountTargetId      string
-	FileSystemId       string
-	SubnetId           string
-	LifeCycleState     string
-	IpAddress          string
-	NetworkInterfaceId string
-	AvailabilityZoneId string
+	MountTargetId        string
+	FileSystemId         string
+	SubnetId             string
+	LifeCycleState       string
+	IpAddress            string
+	NetworkInterfaceId   string
+	AvailabilityZoneId   string
 	AvailabilityZoneName string
 }
 
@@ -96,13 +96,13 @@ func (c *EFSClient) ListMountTargets(ctx context.Context, fileSystemId string) (
 	var targets []MountTargetInfo
 	for _, mt := range output.MountTargets {
 		targets = append(targets, MountTargetInfo{
-			MountTargetId:      aws.ToString(mt.MountTargetId),
-			FileSystemId:       aws.ToString(mt.FileSystemId),
-			SubnetId:           aws.ToString(mt.SubnetId),
-			LifeCycleState:     string(mt.LifeCycleState),
-			IpAddress:          aws.ToString(mt.IpAddress),
-			NetworkInterfaceId: aws.ToString(mt.NetworkInterfaceId),
-			AvailabilityZoneId: aws.ToString(mt.AvailabilityZoneId),
+			MountTargetId:        aws.ToString(mt.MountTargetId),
+			FileSystemId:         aws.ToString(mt.FileSystemId),
+			SubnetId:             aws.ToString(mt.SubnetId),
+			LifeCycleState:       string(mt.LifeCycleState),
+			IpAddress:            aws.ToString(mt.IpAddress),
+			NetworkInterfaceId:   aws.ToString(mt.NetworkInterfaceId),
+			AvailabilityZoneId:   aws.ToString(mt.AvailabilityZoneId),
 			AvailabilityZoneName: aws.ToString(mt.AvailabilityZoneName),
 		})
 	}

@@ -36,18 +36,18 @@ func (i ec2Item) Description() string { return i.description }
 func (i ec2Item) FilterValue() string { return i.title + " " + i.description + " " + i.id }
 
 type EC2Model struct {
-	client    *aws.EC2ResourcesClient
-	list      list.Model
-	actionList list.Model
-	delegate  ec2ItemDelegate
-	styles    Styles
-	state     EC2State
-	width     int
-	height    int
-	profile   string
-	err       error
-	cache     *cache.Cache
-	cacheKeys *cache.KeyBuilder
+	client           *aws.EC2ResourcesClient
+	list             list.Model
+	actionList       list.Model
+	delegate         ec2ItemDelegate
+	styles           Styles
+	state            EC2State
+	width            int
+	height           int
+	profile          string
+	err              error
+	cache            *cache.Cache
+	cacheKeys        *cache.KeyBuilder
 	selectedInstance string
 }
 

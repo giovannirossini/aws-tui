@@ -166,7 +166,7 @@ func (m *BackupModel) setMenu() {
 	}
 	m.list.SetItems(items)
 	m.state = BackupStateMenu
-	
+
 	d := backupItemDelegate{
 		DefaultDelegate: list.NewDefaultDelegate(),
 		styles:          m.styles,

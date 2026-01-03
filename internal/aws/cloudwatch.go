@@ -26,11 +26,11 @@ func NewCloudWatchClient(ctx context.Context, profile string) (*CloudWatchClient
 }
 
 type LogGroupInfo struct {
-	Name            string
-	RetentionDays   int32
-	StoredBytes     int64
-	CreationTime    string
-	Arn             string
+	Name          string
+	RetentionDays int32
+	StoredBytes   int64
+	CreationTime  string
+	Arn           string
 }
 
 func (c *CloudWatchClient) ListLogGroups(ctx context.Context) ([]LogGroupInfo, error) {
@@ -58,10 +58,10 @@ func (c *CloudWatchClient) ListLogGroups(ctx context.Context) ([]LogGroupInfo, e
 }
 
 type LogStreamInfo struct {
-	Name                 string
-	LastEventTimestamp   string
-	CreationTime         string
-	Arn                  string
+	Name               string
+	LastEventTimestamp string
+	CreationTime       string
+	Arn                string
 }
 
 func (c *CloudWatchClient) ListLogStreams(ctx context.Context, logGroupName string) ([]LogStreamInfo, error) {

@@ -48,27 +48,27 @@ func (i ecsItem) Description() string { return i.description }
 func (i ecsItem) FilterValue() string { return i.title + " " + i.description + " " + i.id }
 
 type ECSModel struct {
-	client          *aws.ECSClient
-	list            list.Model
-	actionList      list.Model
-	serviceActionList list.Model
-	viewport        viewport.Model
-	delegate        ecsItemDelegate
-	styles          Styles
-	state           ECSState
-	width           int
-	height          int
-	profile         string
-	err             error
-	cache           *cache.Cache
-	cacheKeys       *cache.KeyBuilder
-	selectedCluster string
-	selectedService string
-	selectedTask    string
+	client                 *aws.ECSClient
+	list                   list.Model
+	actionList             list.Model
+	serviceActionList      list.Model
+	viewport               viewport.Model
+	delegate               ecsItemDelegate
+	styles                 Styles
+	state                  ECSState
+	width                  int
+	height                 int
+	profile                string
+	err                    error
+	cache                  *cache.Cache
+	cacheKeys              *cache.KeyBuilder
+	selectedCluster        string
+	selectedService        string
+	selectedTask           string
 	selectedServiceTaskDef string
-	selectedTaskDefFamily string
-	selectedTaskDefJSON   string
-	allTaskDefs           []aws.TaskDefinitionInfo
+	selectedTaskDefFamily  string
+	selectedTaskDefJSON    string
+	allTaskDefs            []aws.TaskDefinitionInfo
 }
 
 type ecsItemDelegate struct {
@@ -610,9 +610,9 @@ func (m ECSModel) Update(msg tea.Msg) (ECSModel, tea.Cmd) {
 		items := make([]list.Item, len(msg))
 		for i, v := range msg {
 			items[i] = ecsItem{
-				title:       v,
-				id:          v,
-				values:      []string{v},
+				title:  v,
+				id:     v,
+				values: []string{v},
 			}
 		}
 		m.list.SetItems(items)
@@ -721,13 +721,13 @@ func (m ECSModel) Update(msg tea.Msg) (ECSModel, tea.Cmd) {
 		case "enter":
 			if item, ok := m.list.SelectedItem().(ecsItem); ok {
 				switch m.state {
-			case ECSStateMenu:
-				if item.id == "clusters" {
-					return m, m.fetchClusters()
-				} else {
-					return m, m.fetchAllTaskDefs()
-				}
-			case ECSStateClusters:
+				case ECSStateMenu:
+					if item.id == "clusters" {
+						return m, m.fetchClusters()
+					} else {
+						return m, m.fetchAllTaskDefs()
+					}
+				case ECSStateClusters:
 					m.selectedCluster = item.id
 					return m, m.fetchServices(m.selectedCluster)
 				case ECSStateServices:
@@ -736,12 +736,12 @@ func (m ECSModel) Update(msg tea.Msg) (ECSModel, tea.Cmd) {
 					m.loadServiceSubMenu(item.id)
 					m.state = ECSStateSubMenu
 					return m, nil
-			case ECSStateTaskDefFamilies:
-				m.selectedTaskDefFamily = item.id
-				// We already have the data in m.allTaskDefs
-				m.state = ECSStateTaskDefRevisions
-				return m, func() tea.Msg { return ECSTaskDefsMsg(m.allTaskDefs) }
-			case ECSStateTaskDefRevisions:
+				case ECSStateTaskDefFamilies:
+					m.selectedTaskDefFamily = item.id
+					// We already have the data in m.allTaskDefs
+					m.state = ECSStateTaskDefRevisions
+					return m, func() tea.Msg { return ECSTaskDefsMsg(m.allTaskDefs) }
+				case ECSStateTaskDefRevisions:
 					return m, m.fetchTaskDefJSON(item.arn)
 				case ECSStateTasks:
 					// Options handled by 'o'

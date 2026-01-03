@@ -245,10 +245,10 @@ func (m S3Model) createBucket(name string) tea.Cmd {
 		if err != nil {
 			return S3ErrorMsg(err)
 		}
-		
+
 		// Invalidate buckets cache
 		m.cache.Delete(m.cacheKeys.S3Buckets())
-		
+
 		return S3SuccessMsg("Bucket created")
 	}
 }
@@ -263,11 +263,11 @@ func (m S3Model) deleteBucket(name string) tea.Cmd {
 		if err != nil {
 			return S3ErrorMsg(err)
 		}
-		
+
 		// Invalidate caches
 		m.cache.Delete(m.cacheKeys.S3Buckets())
 		m.cache.DeletePrefix(m.cacheKeys.S3BucketPrefix(name))
-		
+
 		return S3SuccessMsg("Bucket deleted")
 	}
 }
@@ -282,10 +282,10 @@ func (m S3Model) createFolder(name string) tea.Cmd {
 		if err != nil {
 			return S3ErrorMsg(err)
 		}
-		
+
 		// Invalidate current prefix cache
 		m.cache.Delete(m.cacheKeys.S3Objects(m.currentBucket, m.currentPrefix))
-		
+
 		return S3SuccessMsg("Folder created")
 	}
 }
@@ -300,10 +300,10 @@ func (m S3Model) deleteObject(key string) tea.Cmd {
 		if err != nil {
 			return S3ErrorMsg(err)
 		}
-		
+
 		// Invalidate current prefix cache
 		m.cache.Delete(m.cacheKeys.S3Objects(m.currentBucket, m.currentPrefix))
-		
+
 		return S3SuccessMsg("Object deleted")
 	}
 }
@@ -319,10 +319,10 @@ func (m S3Model) uploadFile(localPath string) tea.Cmd {
 		if err != nil {
 			return S3ErrorMsg(err)
 		}
-		
+
 		// Invalidate current prefix cache
 		m.cache.Delete(m.cacheKeys.S3Objects(m.currentBucket, m.currentPrefix))
-		
+
 		return S3SuccessMsg("File uploaded")
 	}
 }
@@ -347,7 +347,7 @@ func (m S3Model) Update(msg tea.Msg) (S3Model, tea.Cmd) {
 		}
 		m.list.SetItems(items)
 		m.state = S3StateBuckets
-		
+
 		// Update delegate state for tabular rendering
 		d := s3ItemDelegate{
 			DefaultDelegate: list.NewDefaultDelegate(),
@@ -380,7 +380,7 @@ func (m S3Model) Update(msg tea.Msg) (S3Model, tea.Cmd) {
 		}
 		m.list.SetItems(items)
 		m.state = S3StateObjects
-		
+
 		// Update delegate state for tabular rendering
 		d := s3ItemDelegate{
 			DefaultDelegate: list.NewDefaultDelegate(),

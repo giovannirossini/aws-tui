@@ -26,11 +26,11 @@ func NewRoute53Client(ctx context.Context, profile string) (*Route53Client, erro
 }
 
 type HostedZoneInfo struct {
-	ID            string
-	Name          string
-	RecordCount   int64
-	IsPrivate     bool
-	Comment       string
+	ID          string
+	Name        string
+	RecordCount int64
+	IsPrivate   bool
+	Comment     string
 }
 
 func (c *Route53Client) ListHostedZones(ctx context.Context) ([]HostedZoneInfo, error) {
@@ -45,7 +45,7 @@ func (c *Route53Client) ListHostedZones(ctx context.Context) ([]HostedZoneInfo, 
 		if z.Config != nil && z.Config.Comment != nil {
 			comment = *z.Config.Comment
 		}
-		
+
 		zones = append(zones, HostedZoneInfo{
 			ID:          strings.TrimPrefix(*z.Id, "/hostedzone/"),
 			Name:        aws.ToString(z.Name),
@@ -59,11 +59,11 @@ func (c *Route53Client) ListHostedZones(ctx context.Context) ([]HostedZoneInfo, 
 }
 
 type ResourceRecordSetInfo struct {
-	Name    string
-	Type    string
-	TTL     int64
-	Values  []string
-	Alias   string
+	Name   string
+	Type   string
+	TTL    int64
+	Values []string
+	Alias  string
 }
 
 func (c *Route53Client) ListResourceRecordSets(ctx context.Context, zoneID string) ([]ResourceRecordSetInfo, error) {

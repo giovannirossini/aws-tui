@@ -26,9 +26,9 @@ func NewWAFClient(ctx context.Context, profile string, region string) (*WAFClien
 }
 
 type WebACLInfo struct {
-	Name string
-	ID   string
-	ARN  string
+	Name        string
+	ID          string
+	ARN         string
 	Description string
 }
 
@@ -57,9 +57,9 @@ func (c *WAFClient) ListWebACLs(ctx context.Context, scope types.Scope) ([]WebAC
 }
 
 type IPSetInfo struct {
-	Name string
-	ID   string
-	ARN  string
+	Name        string
+	ID          string
+	ARN         string
 	Description string
 }
 

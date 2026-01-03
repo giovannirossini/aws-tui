@@ -3,8 +3,8 @@ package ui
 import (
 	"os/exec"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/giovannirossini/aws-tui/internal/cache"
 )
 

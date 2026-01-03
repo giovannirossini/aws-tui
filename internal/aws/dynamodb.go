@@ -26,14 +26,14 @@ func NewDynamoDBClient(ctx context.Context, profile string) (*DynamoDBClient, er
 }
 
 type DynamoTableInfo struct {
-	Name           string
-	Status         string
-	ItemCount      int64
-	TableSize      int64
-	CreationTime   time.Time
-	PartitionKey   string
-	SortKey        string
-	BillingMode    string
+	Name         string
+	Status       string
+	ItemCount    int64
+	TableSize    int64
+	CreationTime time.Time
+	PartitionKey string
+	SortKey      string
+	BillingMode  string
 }
 
 func (c *DynamoDBClient) ListTables(ctx context.Context) ([]DynamoTableInfo, error) {

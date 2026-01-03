@@ -110,8 +110,8 @@ type actionDelegate struct {
 	styles Styles
 }
 
-func (d actionDelegate) Height() int { return 1 }
-func (d actionDelegate) Spacing() int { return 0 }
+func (d actionDelegate) Height() int                               { return 1 }
+func (d actionDelegate) Spacing() int                              { return 0 }
 func (d actionDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
 func (d actionDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
 	i, ok := listItem.(iamActionItem)
@@ -131,21 +131,21 @@ func (d actionDelegate) Render(w io.Writer, m list.Model, index int, listItem li
 }
 
 type IAMModel struct {
-	list          list.Model
-	actionList    list.Model
-	input         textinput.Model
-	styles        Styles
-	state         IAMState
-	action        IAMAction
-	selectedUser  iamItem
-	userDetail    *aws.IAMUserInfo
-	userKeys      []aws.AccessKeyInfo
-	width         int
-	height        int
-	profile       string
-	err           error
-	cache         *cache.Cache
-	cacheKeys     *cache.KeyBuilder
+	list         list.Model
+	actionList   list.Model
+	input        textinput.Model
+	styles       Styles
+	state        IAMState
+	action       IAMAction
+	selectedUser iamItem
+	userDetail   *aws.IAMUserInfo
+	userKeys     []aws.AccessKeyInfo
+	width        int
+	height       int
+	profile      string
+	err          error
+	cache        *cache.Cache
+	cacheKeys    *cache.KeyBuilder
 }
 
 func NewIAMModel(profile string, styles Styles, appCache *cache.Cache) IAMModel {
@@ -154,7 +154,7 @@ func NewIAMModel(profile string, styles Styles, appCache *cache.Cache) IAMModel 
 		styles:          styles,
 	}
 	d.Styles.SelectedTitle = styles.ListSelectedTitle
-	
+
 	l := list.New([]list.Item{}, d, 0, 0)
 	l.Title = "IAM Users"
 	l.SetShowStatusBar(false)
@@ -243,7 +243,7 @@ func (m IAMModel) fetchUserDetails(userName string) tea.Cmd {
 		}
 
 		result := IAMUserDetailsMsg{Info: info, Keys: keys}
-		
+
 		// Cache the result
 		m.cache.Set(cacheKey, result, cache.TTLIAMUserDetails)
 
@@ -261,10 +261,10 @@ func (m IAMModel) resetPassword(userName, password string) tea.Cmd {
 		if err != nil {
 			return IAMErrorMsg(err)
 		}
-		
+
 		// Invalidate user details cache
 		m.cache.Delete(m.cacheKeys.IAMUserDetails(userName))
-		
+
 		return IAMSuccessMsg("Password reset successfully")
 	}
 }
@@ -284,10 +284,10 @@ func (m IAMModel) toggleConsoleAccess(userName string, enable bool) tea.Cmd {
 		if err != nil {
 			return IAMErrorMsg(err)
 		}
-		
+
 		// Invalidate user details cache
 		m.cache.Delete(m.cacheKeys.IAMUserDetails(userName))
-		
+
 		msg := "Console access disabled"
 		if enable {
 			msg = "Console access enabled (TempPass123!)"
@@ -306,10 +306,10 @@ func (m IAMModel) createUser(name string) tea.Cmd {
 		if err != nil {
 			return IAMErrorMsg(err)
 		}
-		
+
 		// Invalidate users cache
 		m.cache.Delete(m.cacheKeys.IAMUsers())
-		
+
 		return IAMSuccessMsg("User created")
 	}
 }
@@ -324,11 +324,11 @@ func (m IAMModel) deleteUser(name string) tea.Cmd {
 		if err != nil {
 			return IAMErrorMsg(err)
 		}
-		
+
 		// Invalidate caches
 		m.cache.Delete(m.cacheKeys.IAMUsers())
 		m.cache.Delete(m.cacheKeys.IAMUserDetails(name))
-		
+
 		return IAMSuccessMsg("User deleted")
 	}
 }
@@ -368,7 +368,7 @@ func (m IAMModel) Update(msg tea.Msg) (IAMModel, tea.Cmd) {
 	case IAMUserDetailsMsg:
 		m.userDetail = msg.Info
 		m.userKeys = msg.Keys
-		
+
 		actions := []list.Item{
 			iamActionItem{title: "Reset Password", key: "reset"},
 		}
@@ -378,7 +378,7 @@ func (m IAMModel) Update(msg tea.Msg) (IAMModel, tea.Cmd) {
 			actions = append(actions, iamActionItem{title: "Enable Console Access", key: "enable_console"})
 		}
 		actions = append(actions, iamActionItem{title: "Delete User", key: "delete"})
-		
+
 		m.actionList.SetItems(actions)
 		m.actionList.SetSize(36, len(actions))
 		return m, nil
@@ -499,7 +499,7 @@ func (m IAMModel) Update(msg tea.Msg) (IAMModel, tea.Cmd) {
 				if item, ok := m.list.SelectedItem().(iamItem); ok {
 					m.selectedUser = item
 					m.state = IAMStateActions
-					
+
 					// Pre-populate with basic actions while loading details
 					actions := []list.Item{
 						iamActionItem{title: "Reset Password", key: "reset"},
@@ -508,7 +508,7 @@ func (m IAMModel) Update(msg tea.Msg) (IAMModel, tea.Cmd) {
 					}
 					m.actionList.SetItems(actions)
 					m.actionList.SetSize(36, len(actions))
-					
+
 					return m, m.fetchUserDetails(item.userName)
 				}
 			}
@@ -555,7 +555,7 @@ func (m IAMModel) View() string {
 		return header + "\n" + m.list.View()
 
 	case IAMStateInput:
-		return RenderOverlay(header + "\n" + m.list.View(), m.styles.Popup.Width(40).Render(fmt.Sprintf(
+		return RenderOverlay(header+"\n"+m.list.View(), m.styles.Popup.Width(40).Render(fmt.Sprintf(
 			" %s\n\n %s\n\n %s",
 			lipgloss.NewStyle().Foreground(m.styles.Primary).Render(m.input.Placeholder),
 			m.input.View(),
@@ -563,7 +563,7 @@ func (m IAMModel) View() string {
 		)), m.width, m.height)
 
 	case IAMStateConfirmDelete:
-		return RenderOverlay(header + "\n" + m.list.View(), m.styles.Popup.Width(40).BorderForeground(ErrorColor).Render(fmt.Sprintf(
+		return RenderOverlay(header+"\n"+m.list.View(), m.styles.Popup.Width(40).BorderForeground(ErrorColor).Render(fmt.Sprintf(
 			" %s\n\n %s %s\n\n %s",
 			m.styles.Error.Bold(true).Render("⚠ Confirm Deletion"),
 			"Are you sure you want to delete user",
@@ -576,7 +576,7 @@ func (m IAMModel) View() string {
 		if m.action == IAMActionDisableConsole {
 			action = "disable"
 		}
-		return RenderOverlay(header + "\n" + m.list.View(), m.styles.Popup.Width(40).Render(fmt.Sprintf(
+		return RenderOverlay(header+"\n"+m.list.View(), m.styles.Popup.Width(40).Render(fmt.Sprintf(
 			" %s\n\n Are you sure you want to %s console access for %s?\n\n %s",
 			lipgloss.NewStyle().Foreground(m.styles.Primary).Bold(true).Render("⚠ Confirm Console Access Toggle"),
 			action,
@@ -599,9 +599,9 @@ func (m IAMModel) View() string {
 		for i, item := range m.actionList.Items() {
 			action := item.(iamActionItem)
 			if i == m.actionList.Index() {
-				actionsView.WriteString(m.styles.SelectedMenuItem.Render("➜ " + action.title) + "\n")
+				actionsView.WriteString(m.styles.SelectedMenuItem.Render("➜ "+action.title) + "\n")
 			} else {
-				actionsView.WriteString(m.styles.MenuItem.Render("  " + action.title) + "\n")
+				actionsView.WriteString(m.styles.MenuItem.Render("  "+action.title) + "\n")
 			}
 		}
 
@@ -611,8 +611,8 @@ func (m IAMModel) View() string {
 				actionsView.String(),
 			),
 		)
-		
-		return RenderOverlay(header + "\n" + m.list.View(), menu, m.width, m.height)
+
+		return RenderOverlay(header+"\n"+m.list.View(), menu, m.width, m.height)
 
 	default:
 		return header + "\n" + m.list.View()

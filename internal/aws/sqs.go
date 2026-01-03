@@ -27,14 +27,14 @@ func NewSQSClient(ctx context.Context, profile string) (*SQSClient, error) {
 }
 
 type QueueInfo struct {
-	URL                     string
-	Name                    string
-	Type                    string // Standard or FIFO
-	MessagesAvailable       string
-	MessagesDelayed         string
-	MessagesNotVisible      string
-	VisibilityTimeout       string
-	CreatedTimestamp        string
+	URL                string
+	Name               string
+	Type               string // Standard or FIFO
+	MessagesAvailable  string
+	MessagesDelayed    string
+	MessagesNotVisible string
+	VisibilityTimeout  string
+	CreatedTimestamp   string
 }
 
 func (c *SQSClient) ListQueues(ctx context.Context) ([]QueueInfo, error) {

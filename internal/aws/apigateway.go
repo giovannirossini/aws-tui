@@ -12,8 +12,8 @@ import (
 )
 
 type APIGatewayClient struct {
-	client    *apigateway.Client
-	clientV2  *apigatewayv2.Client
+	client   *apigateway.Client
+	clientV2 *apigatewayv2.Client
 }
 
 func NewAPIGatewayClient(ctx context.Context, profile string) (*APIGatewayClient, error) {
@@ -29,21 +29,21 @@ func NewAPIGatewayClient(ctx context.Context, profile string) (*APIGatewayClient
 }
 
 type RestAPIInfo struct {
-	ID          string
-	Name        string
-	Description string
-	CreatedDate time.Time
-	Version     string
+	ID           string
+	Name         string
+	Description  string
+	CreatedDate  time.Time
+	Version      string
 	EndpointType string
 }
 
 type HTTPAPIInfo struct {
-	APIID          string
-	Name           string
-	ProtocolType   string
-	CreatedDate    time.Time
-	APIEndpoint    string
-	Description    string
+	APIID        string
+	Name         string
+	ProtocolType string
+	CreatedDate  time.Time
+	APIEndpoint  string
+	Description  string
 }
 
 func (c *APIGatewayClient) ListRestAPIs(ctx context.Context) ([]RestAPIInfo, error) {

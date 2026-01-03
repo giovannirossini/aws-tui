@@ -70,9 +70,9 @@ type CFOriginInfo struct {
 }
 
 type CFBehaviorInfo struct {
-	PathPattern     string
-	TargetOriginID  string
-	ViewerProtocol  string
+	PathPattern    string
+	TargetOriginID string
+	ViewerProtocol string
 }
 
 func (c *CloudFrontClient) GetDistributionDetails(ctx context.Context, id string) ([]CFOriginInfo, []CFBehaviorInfo, error) {
@@ -118,9 +118,9 @@ func (c *CloudFrontClient) GetDistributionDetails(ctx context.Context, id string
 }
 
 type CFInvalidationInfo struct {
-	ID          string
-	Status      string
-	CreateTime  string
+	ID         string
+	Status     string
+	CreateTime string
 }
 
 func (c *CloudFrontClient) ListInvalidations(ctx context.Context, distributionID string) ([]CFInvalidationInfo, error) {

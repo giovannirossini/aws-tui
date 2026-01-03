@@ -26,13 +26,13 @@ func NewDMSClient(ctx context.Context, profile string) (*DMSClient, error) {
 }
 
 type ReplicationTaskInfo struct {
-	ID        string
-	ARN       string
-	Status    string
-	Type      string
-	Source    string
-	Target    string
-	Instance  string
+	ID               string
+	ARN              string
+	Status           string
+	Type             string
+	Source           string
+	Target           string
+	Instance         string
 	FullLoadProgress int32
 }
 
@@ -48,13 +48,13 @@ func (c *DMSClient) ListReplicationTasks(ctx context.Context) ([]ReplicationTask
 
 		for _, t := range page.ReplicationTasks {
 			tasks = append(tasks, ReplicationTaskInfo{
-				ID:        aws.ToString(t.ReplicationTaskIdentifier),
-				ARN:       aws.ToString(t.ReplicationTaskArn),
-				Status:    aws.ToString(t.Status),
-				Type:      string(t.MigrationType),
-				Source:    aws.ToString(t.SourceEndpointArn),
-				Target:    aws.ToString(t.TargetEndpointArn),
-				Instance:  aws.ToString(t.ReplicationInstanceArn),
+				ID:               aws.ToString(t.ReplicationTaskIdentifier),
+				ARN:              aws.ToString(t.ReplicationTaskArn),
+				Status:           aws.ToString(t.Status),
+				Type:             string(t.MigrationType),
+				Source:           aws.ToString(t.SourceEndpointArn),
+				Target:           aws.ToString(t.TargetEndpointArn),
+				Instance:         aws.ToString(t.ReplicationInstanceArn),
 				FullLoadProgress: t.ReplicationTaskStats.FullLoadProgressPercent,
 			})
 		}
@@ -64,12 +64,12 @@ func (c *DMSClient) ListReplicationTasks(ctx context.Context) ([]ReplicationTask
 }
 
 type DMSEndpointInfo struct {
-	ID       string
-	Type     string
-	Engine   string
-	Server   string
-	Port     int32
-	Status   string
+	ID     string
+	Type   string
+	Engine string
+	Server string
+	Port   int32
+	Status string
 }
 
 func (c *DMSClient) ListEndpoints(ctx context.Context) ([]DMSEndpointInfo, error) {
@@ -98,12 +98,12 @@ func (c *DMSClient) ListEndpoints(ctx context.Context) ([]DMSEndpointInfo, error
 }
 
 type ReplicationInstanceInfo struct {
-	ID               string
-	Class            string
-	Status           string
-	EngineVersion    string
+	ID                 string
+	Class              string
+	Status             string
+	EngineVersion      string
 	PubliclyAccessible bool
-	AZ               string
+	AZ                 string
 }
 
 func (c *DMSClient) ListReplicationInstances(ctx context.Context) ([]ReplicationInstanceInfo, error) {
@@ -118,12 +118,12 @@ func (c *DMSClient) ListReplicationInstances(ctx context.Context) ([]Replication
 
 		for _, i := range page.ReplicationInstances {
 			instances = append(instances, ReplicationInstanceInfo{
-				ID:               aws.ToString(i.ReplicationInstanceIdentifier),
-				Class:            aws.ToString(i.ReplicationInstanceClass),
-				Status:           aws.ToString(i.ReplicationInstanceStatus),
-				EngineVersion:    aws.ToString(i.EngineVersion),
+				ID:                 aws.ToString(i.ReplicationInstanceIdentifier),
+				Class:              aws.ToString(i.ReplicationInstanceClass),
+				Status:             aws.ToString(i.ReplicationInstanceStatus),
+				EngineVersion:      aws.ToString(i.EngineVersion),
 				PubliclyAccessible: i.PubliclyAccessible,
-				AZ:               aws.ToString(i.AvailabilityZone),
+				AZ:                 aws.ToString(i.AvailabilityZone),
 			})
 		}
 	}

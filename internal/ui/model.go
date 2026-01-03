@@ -1,9 +1,9 @@
 package ui
 
 import (
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/giovannirossini/aws-tui/internal/aws"
 	"github.com/giovannirossini/aws-tui/internal/cache"
 )

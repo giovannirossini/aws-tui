@@ -25,12 +25,12 @@ func NewRDSClient(ctx context.Context, profile string) (*RDSClient, error) {
 }
 
 type RDSInstanceInfo struct {
-	ID        string
-	Engine    string
-	Status    string
-	Class     string
-	Endpoint  string
-	VpcID     string
+	ID       string
+	Engine   string
+	Status   string
+	Class    string
+	Endpoint string
+	VpcID    string
 }
 
 func (c *RDSClient) ListInstances(ctx context.Context) ([]RDSInstanceInfo, error) {
@@ -63,11 +63,11 @@ func (c *RDSClient) ListInstances(ctx context.Context) ([]RDSInstanceInfo, error
 }
 
 type RDSClusterInfo struct {
-	ID        string
-	Engine    string
-	Status    string
-	Endpoint  string
-	VpcID     string
+	ID       string
+	Engine   string
+	Status   string
+	Endpoint string
+	VpcID    string
 }
 
 func (c *RDSClient) ListClusters(ctx context.Context) ([]RDSClusterInfo, error) {

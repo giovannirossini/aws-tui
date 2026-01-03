@@ -27,9 +27,9 @@ func NewSNSClient(ctx context.Context, profile string) (*SNSClient, error) {
 }
 
 type TopicInfo struct {
-	ARN                string
-	Name               string
-	Type               string // Standard or FIFO
+	ARN                    string
+	Name                   string
+	Type                   string // Standard or FIFO
 	SubscriptionsConfirmed string
 	SubscriptionsPending   string
 }

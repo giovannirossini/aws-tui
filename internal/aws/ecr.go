@@ -27,13 +27,13 @@ func NewECRClient(ctx context.Context, profile string) (*ECRClient, error) {
 }
 
 type RepositoryInfo struct {
-	Name            string
-	RegistryId      string
-	RepositoryUri   string
-	CreatedAt       time.Time
-	ImageTagMut     string
-	ScanOnPush      bool
-	EncryptionType  string
+	Name           string
+	RegistryId     string
+	RepositoryUri  string
+	CreatedAt      time.Time
+	ImageTagMut    string
+	ScanOnPush     bool
+	EncryptionType string
 }
 
 func (c *ECRClient) ListRepositories(ctx context.Context) ([]RepositoryInfo, error) {
@@ -68,11 +68,11 @@ func (c *ECRClient) ListRepositories(ctx context.Context) ([]RepositoryInfo, err
 }
 
 type ImageInfo struct {
-	Tags           []string
-	Digest         string
-	PushedAt       time.Time
-	Size           int64
-	Status         string
+	Tags              []string
+	Digest            string
+	PushedAt          time.Time
+	Size              int64
+	Status            string
 	ArtifactMediaType string
 }
 

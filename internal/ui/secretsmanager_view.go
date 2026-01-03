@@ -278,7 +278,7 @@ func (m SMModel) View() string {
 		displayValue := m.highlightSecret(m.selectedValue)
 
 		return lipgloss.NewStyle().
-			Width(m.width - InnerContentWidthOffset).
+			Width(m.width-InnerContentWidthOffset).
 			Padding(1, 2).
 			Render(displayValue)
 	}

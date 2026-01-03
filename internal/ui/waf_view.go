@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/aws/aws-sdk-go-v2/service/wafv2/types"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/giovannirossini/aws-tui/internal/aws"
 	"github.com/giovannirossini/aws-tui/internal/cache"
-	"github.com/aws/aws-sdk-go-v2/service/wafv2/types"
 )
 
 type WAFState int
@@ -33,17 +33,17 @@ func (i wafItem) Description() string { return i.description }
 func (i wafItem) FilterValue() string { return i.title }
 
 type WAFModel struct {
-	list          list.Model
-	styles        Styles
-	state         WAFState
-	scope         types.Scope
-	profile       string
-	region        string
-	width         int
-	height        int
-	err           error
-	cache         *cache.Cache
-	cacheKeys     *cache.KeyBuilder
+	list      list.Model
+	styles    Styles
+	state     WAFState
+	scope     types.Scope
+	profile   string
+	region    string
+	width     int
+	height    int
+	err       error
+	cache     *cache.Cache
+	cacheKeys *cache.KeyBuilder
 }
 
 type wafItemDelegate struct {

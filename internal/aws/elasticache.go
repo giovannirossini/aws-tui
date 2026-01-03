@@ -25,12 +25,12 @@ func NewElastiCacheClient(ctx context.Context, profile string) (*ElastiCacheClie
 }
 
 type ReplicationGroupInfo struct {
-	ID          string
-	Status      string
-	Engine      string
+	ID            string
+	Status        string
+	Engine        string
 	CacheNodeType string
-	Nodes       int32
-	Description string
+	Nodes         int32
+	Description   string
 }
 
 func (c *ElastiCacheClient) ListReplicationGroups(ctx context.Context) ([]ReplicationGroupInfo, error) {

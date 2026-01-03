@@ -55,9 +55,9 @@ func (c *ACMClient) ListCertificates(ctx context.Context) ([]CertificateInfo, er
 	// Fetch details in parallel to avoid "freezing" UI for long periods
 	var wg sync.WaitGroup
 	resultChan := make(chan CertificateInfo, len(summaries))
-	
+
 	// Limit concurrency to avoid hitting AWS rate limits too hard
-	sem := make(chan struct{}, 10) 
+	sem := make(chan struct{}, 10)
 
 	for _, s := range summaries {
 		wg.Add(1)

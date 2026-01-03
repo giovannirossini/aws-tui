@@ -28,12 +28,12 @@ func NewECSClient(ctx context.Context, profile string) (*ECSClient, error) {
 }
 
 type ECSClusterInfo struct {
-	ARN                string
-	Name               string
-	Status             string
-	RunningTasks       int32
-	PendingTasks       int32
-	ActiveServices     int32
+	ARN            string
+	Name           string
+	Status         string
+	RunningTasks   int32
+	PendingTasks   int32
+	ActiveServices int32
 }
 
 func (c *ECSClient) ListClusters(ctx context.Context) ([]ECSClusterInfo, error) {
@@ -129,15 +129,15 @@ func (c *ECSClient) ListServices(ctx context.Context, cluster string) ([]Service
 }
 
 type ECSTaskInfo struct {
-	ARN               string
-	ID                string
-	LastStatus        string
-	DesiredStatus     string
-	TaskDefinition    string
-	LaunchType        string
-	CPU               string
-	Memory            string
-	CreatedAt         string
+	ARN            string
+	ID             string
+	LastStatus     string
+	DesiredStatus  string
+	TaskDefinition string
+	LaunchType     string
+	CPU            string
+	Memory         string
+	CreatedAt      string
 }
 
 func (c *ECSClient) ListTasks(ctx context.Context, cluster string, serviceName *string) ([]ECSTaskInfo, error) {

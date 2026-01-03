@@ -159,7 +159,7 @@ func (m *VPCModel) getVPCDisplayName(id string) string {
 	if name, ok := m.vpcNames[id]; ok && name != "" {
 		return fmt.Sprintf("%s (%s)", id, name)
 	}
-	
+
 	// Try to load from cache if map is empty
 	if len(m.vpcNames) == 0 {
 		if cached, ok := m.cache.Get(m.cacheKeys.VPCResources("vpcs")); ok {
@@ -173,7 +173,7 @@ func (m *VPCModel) getVPCDisplayName(id string) string {
 			}
 		}
 	}
-	
+
 	return id
 }
 
@@ -465,7 +465,6 @@ func (m VPCModel) Update(msg tea.Msg) (VPCModel, tea.Cmd) {
 	m.list, cmd = m.list.Update(msg)
 	return m, cmd
 }
-
 
 func (m *VPCModel) updateDelegate() {
 	d := vpcItemDelegate{
