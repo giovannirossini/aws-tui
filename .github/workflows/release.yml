@@ -1,0 +1,119 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run tests
+        uses: ./.github/actions/test
+        with:
+          go-version: '1.25'
+
+  build:
+    name: Build (${{ matrix.os }}-${{ matrix.arch }})
+    needs: test
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            runs-on: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            binary: aws-tui
+          - os: linux
+            arch: arm64
+            runs-on: ubuntu-latest
+            goos: linux
+            goarch: arm64
+            binary: aws-tui
+          - os: darwin
+            arch: amd64
+            runs-on: macos-latest
+            goos: darwin
+            goarch: amd64
+            binary: aws-tui
+          - os: darwin
+            arch: arm64
+            runs-on: macos-latest
+            goos: darwin
+            goarch: arm64
+            binary: aws-tui
+          - os: windows
+            arch: amd64
+            runs-on: windows-latest
+            goos: windows
+            goarch: amd64
+            binary: aws-tui.exe
+          - os: windows
+            arch: arm64
+            runs-on: windows-latest
+            goos: windows
+            goarch: arm64
+            binary: aws-tui.exe
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build binary
+        uses: ./.github/actions/build
+        with:
+          go-version: '1.25'
+          binary-name: ${{ matrix.binary }}
+          artifact-name: aws-tui-${{ matrix.os }}-${{ matrix.arch }}
+          artifact-path: ${{ matrix.binary }}
+          goos: ${{ matrix.goos }}
+          goarch: ${{ matrix.goarch }}
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release
+          mv artifacts/aws-tui-linux-amd64/aws-tui release/aws-tui-linux-amd64
+          mv artifacts/aws-tui-linux-arm64/aws-tui release/aws-tui-linux-arm64
+          mv artifacts/aws-tui-darwin-amd64/aws-tui release/aws-tui-darwin-amd64
+          mv artifacts/aws-tui-darwin-arm64/aws-tui release/aws-tui-darwin-arm64
+          mv artifacts/aws-tui-windows-amd64/aws-tui.exe release/aws-tui-windows-amd64.exe
+          mv artifacts/aws-tui-windows-arm64/aws-tui.exe release/aws-tui-windows-arm64.exe
+          chmod +x release/aws-tui-linux-amd64 release/aws-tui-linux-arm64 release/aws-tui-darwin-amd64 release/aws-tui-darwin-arm64
+
+      - name: Generate checksums
+        run: |
+          cd release
+          sha256sum * > checksums.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

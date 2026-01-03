@@ -13,19 +13,25 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
+GOVET=$(GOCMD) vet
+GOFMT=$(GOCMD)fmt
 
 # Build flags
 LDFLAGS=-ldflags "-s -w"
+OUTPUT=$(BUILD_DIR)/$(BINARY_NAME)
 
-.PHONY: all build clean test run tidy help
+.PHONY: all build clean test run tidy vet fmt-check help
 
 all: build
 
-## build: Build the binary
+## build: Build the binary (use OUTPUT=path/to/binary to override output path)
 build:
 	@echo "Building $(BINARY_NAME)..."
-	@mkdir -p $(BUILD_DIR)
-	$(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_PATH)
+	@OUTPUT_DIR="$$(dirname $(OUTPUT))"; \
+	if [ "$$OUTPUT_DIR" != "." ]; then \
+		mkdir -p "$$OUTPUT_DIR"; \
+	fi
+	$(GOBUILD) $(LDFLAGS) -o $(OUTPUT) $(MAIN_PATH)
 
 ## clean: Remove build artifacts
 clean:
@@ -46,6 +52,21 @@ run: build
 tidy:
 	@echo "Tidying up modules..."
 	$(GOMOD) tidy
+
+## vet: Run go vet on all packages
+vet:
+	@echo "Running go vet..."
+	$(GOVET) ./...
+
+## fmt-check: Check if code is properly formatted
+fmt-check:
+	@echo "Checking code formatting..."
+	@if [ "$$($(GOFMT) -s -l . | wc -l)" -gt 0 ]; then \
+		echo "Code is not formatted. Run 'go fmt ./...'"; \
+		$(GOFMT) -s -d .; \
+		exit 1; \
+	fi
+	@echo "Code is properly formatted."
 
 ## help: Show this help message
 help:

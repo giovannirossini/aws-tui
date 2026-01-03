@@ -1,0 +1,57 @@
+name: 'Build Steps'
+description: 'Reusable build steps'
+
+inputs:
+  go-version:
+    description: 'Go version to use'
+    required: true
+  binary-name:
+    description: 'Output binary name'
+    required: false
+    default: 'aws-tui'
+  artifact-name:
+    description: 'Artifact name'
+    required: false
+    default: 'aws-tui'
+  artifact-path:
+    description: 'Path to artifact'
+    required: false
+    default: 'aws-tui'
+  retention-days:
+    description: 'Artifact retention days'
+    required: false
+    default: '7'
+  goos:
+    description: 'GOOS value (optional)'
+    required: false
+    default: ''
+  goarch:
+    description: 'GOARCH value (optional)'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ inputs.go-version }}
+        cache-dependency-path: go.sum
+
+    - name: Build binary
+      shell: bash
+      run: make build OUTPUT=${{ inputs.binary-name }}
+      env:
+        GOOS: ${{ inputs.goos }}
+        GOARCH: ${{ inputs.goarch }}
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.artifact-path }}
+        retention-days: ${{ inputs.retention-days }}

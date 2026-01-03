@@ -1,0 +1,35 @@
+name: 'Test Steps'
+description: 'Reusable test steps (formatting check and tests)'
+
+inputs:
+  go-version:
+    description: 'Go version to use'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ inputs.go-version }}
+        cache-dependency-path: go.sum
+
+    - name: Tidy modules
+      shell: bash
+      run: make tidy
+
+    - name: Check formatting
+      shell: bash
+      run: make fmt-check
+
+    - name: Run go vet
+      shell: bash
+      run: make vet
+
+    - name: Run tests
+      shell: bash
+      run: make test
